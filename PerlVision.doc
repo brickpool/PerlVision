@@ -6,12 +6,7 @@ require 5.000;
 #
 # Copyright (c) Ashish Gulhati, 1995. All Rights Reserved.
 #
-# Free electronic distribution permitted. You are free to use
-# PerlVision in your own code so long as this copyright message stays
-# intact. PerlVision or derived code may not be used in any commercial
-# product without my prior written or PGP-signed consent. Please e-mail
-# me if you make significant changes, or just want to let me know what
-# you're using PerlVision for.
+# You may use and distribute this code under the same terms as Perl itself.
 
 
 INTRO
@@ -463,6 +458,10 @@ BUGS
 TO DO
 =====
 
+(NOTE: PV languished for many (4) years without any updates but I am
+ getting around to working on it again now. Please email wishlist
+ suggestions to perlvision@generalogic.com. Author - 18 July 1999)
+
 * PV::Combobox
 * Hardware scrolling for listboxes, viewboxes and editboxes that
   extend the width of the screen.
@@ -478,7 +477,6 @@ TO DO
 * Make auto-fill optional in editbox and fix tab handling so that rap
   can also be used to edit /etc/hosts instead of just mail ;-/
 * Implement keymap objects.
-* Texinfo docs.
 
 All suggestions for improvement as well as news on what you're using
 PerlVision for are welcome. If you're interested enough, send mail to
@@ -499,19 +497,24 @@ V.0.2.0 - April 1 '95. Found Will Setzer's Curses interface for Perl
 	  module. Many thanx to Tim Bunce for helping clear up my
           confusion about modules.
 
+V.1.0.0 - Coming soon! June 18 '99. I am going to completely revamp PV
+          soon and wishlist suggestions are invited. Please mail
+          perlvision@generalogic.com.
+
 
 THANKS TO
 =========
 
 Raj, my Unix mentor. You're a real gnu-ron!
-Atul, Rishab and Kompal for existing. Mohua for company.
-Emily Saliers and Neil Peart for fantastic music.
+Emily Saliers, Eddie Van Halen and Neil Peart for fantastic music.
 William Setzer for Perl Curses. Larry Wall for Perl. RMS for Emacs.
+Barkha for existing. I love you.
 
 
  --====--- -----------------------------------------------------------------
- --=---=-- Ashish Gulhati | hash@netropolis.org          |"Existence Exists"
- --=---=-- NETROPOLIS     | http://www.well.com/www/hash |        ~ Ayn Rand
+ --=---=-- Ashish Gulhati| hash@netropolis.org           |"Existence Exists"
+ --=---=-- NETROPOLIS    | 140 Sunder Nagar, ND-3, India |        ~ Ayn Rand
  --=---=-- -----------------------------------------------------------------
- --=---=--          Finger hash@well.sf.ca.us for PGP public key.
+ --=---=--   <A HREF="http://www.netropolis.org/hash/">Home Sweet Home</A>
  --=---=-- -----------------------------------------------------------------
+

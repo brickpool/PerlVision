@@ -6,12 +6,8 @@
 #
 # Copyright (c) Ashish Gulhati, 1995. All Rights Reserved.
 #
-# Free electronic distribution permitted. You are free to use
-# PerlVision in your own code so long as this copyright message stays
-# intact. PerlVision or derived code may not be used in any commercial
-# product without my prior written or PGP-signed consent. Please e-mail
-# me if you make significant changes, or just want to let me know what
-# you're using PerlVision for.
+# You may use and distribute this code under the same terms as Perl itself.
+
 
 # RAP (Rap Ain't Pico) is a small text editor provided as an example
 # of how to code using PerlVision and what PerlVision programs look
@@ -19,8 +15,7 @@
 # inexperienced users, just great! They'll get used to emacs keybindings
 # for basic stuff and won't find it intimidating to move to the mother
 # of all editors later. ;-) I use rap as a pico replacement on my
-# system. RAP (but not the rest of PerlVision) is distributed under
-# the terms of the GNU General Public License, see file COPYING.
+# system.
 
 require 5.000;
 use Curses;

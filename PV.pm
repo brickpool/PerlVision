@@ -6,12 +6,8 @@ require 5.000;
 #
 # Copyright (c) Ashish Gulhati, 1995. All Rights Reserved.
 #
-# Free electronic distribution permitted. You are free to use
-# PerlVision in your own code so long as this copyright message stays
-# intact. PerlVision or derived code may not be used in any commercial
-# product without my prior written or PGP-signed consent. Please e-mail
-# me if you make significant changes, or just want to let me know what
-# you're using PerlVision for.
+# You may use and distribute this code under the same terms as Perl itself.
+
 
 package PV;
 use Curses;
