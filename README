@@ -1,0 +1,57 @@
+# PerlVision - A class library for text-mode user interface widgets.
+# By Ashish Gulhati (hash@netropolis.org)
+# V.0.2.0
+#
+# Copyright (c) Ashish Gulhati, 1995. All Rights Reserved.
+#
+# Free electronic distribution permitted. You are free to use
+# PerlVision in your own code so long as this copyright message stays
+# intact. PerlVision or derived code may not be used in any commercial
+# product without my prior written or PGP-signed consent. Please e-mail
+# me if you make significant changes, or just want to let me know what
+# you're using PerlVision for.
+
+PerlVision is a Perl 5 class library that enables you to implement an
+attractive and versatile text-mode interface for your application
+programs on Unix. It contains support for most common input elements
+as well as for dialog boxes with arbitrary combinations of input
+elements.
+
+To use PerlVision you will need at least Perl 5.000, available from
+ftp.netlabs.com and prep.ai.mit.edu, among other sites, and William
+Setzer's Curses interface to Perl, available from ftp.ncsu.edu in
+/pub/math/wsetzer.
+
+The perlvision-0.1.0.tgz file should contain:
+
+PV.pm		- The PerlVision module.
+PerlVision.doc	- Documentation for PerlVision.
+rap		- (rap ain't pico) A simple text editor as an example
+                  of using PerlVision.
+COPYING		- The GPL - terms and conditions under which rap (but
+		  not the rest of PerlVision) is distributed
+README		- This file.
+IAFA-PACKAGE    - The IETF FTP Archives Working Group standard format 
+                  description of PerlVision.
+
+PerlVision is not public domain or copylefted software. If you plan to
+use PerlVision or anything derived from it in any product that will be
+sold commercially, you must obtain my prior written or PGP-signed
+consent.
+
+If you just want to use RAP, install Curses.pm and put PV.pm in your
+Perl lib directory, typically /usr/lib/perl5 or /usr/local/lib/perl5,
+put rap in /usr/bin or /usr/local/bin, change the first line in rap to
+point to where your Perl5 binary is installed, and you're all set. RAP
+_is_ copylefted software.
+
+
+Ashish Gulhati
+
+
+ --====--- -----------------------------------------------------------------
+ --=---=-- Ashish Gulhati | hash@netropolis.org          |"Existence Exists"
+ --=---=-- Netropolis     | http://www.well.com/www/hash |        ~ Ayn Rand
+ --=---=-- -----------------------------------------------------------------
+ --=---=--          Finger hash@well.sf.ca.us for PGP public key.
+ --=---=-- -----------------------------------------------------------------

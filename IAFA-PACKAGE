@@ -1,0 +1,9 @@
+Title:          PerlVision
+Version:        v.0.2.0
+Description:    A Perl 5 class library for text-mode GUI controls.
+Author:         Ashish Gulhati (hash@netropolis.org)
+Maintained-by:  Ashish Gulhati (pvision@netropolis.org)
+Maintained-at:  ftp://c2.org/pub/users/hash/perlvision.tgz
+Platforms:      Perl 5.000+, Curses, Linux, Unix.
+Copying-Policy: Freely redistributable (with restrictions on commercial use)
+Keywords:       GUI, forms, dialog, user interface, widgets, toolkit
