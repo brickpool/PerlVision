@@ -7,14 +7,14 @@
 # redistribute it and/or modify it under the same terms as Perl
 # itself.
 #
-# $Id: PV.pm,v 1.4 2000/07/29 12:27:07 cvs Exp $
+# $Id: PV.pm,v 1.5 2000/10/31 08:06:08 cvs Exp $
 
 use 5.000;
 package PV;
 use Curses;
 use vars qw ( $VERSION );
 
-( $VERSION ) = '$Revision: 1.4 $' =~ /\s+([\d\.]+)/;
+( $VERSION ) = '$Revision: 1.5 $' =~ /\s+([\d\.]+)/;
 
 sub init {			# Sets things up
   initscr();
@@ -32,6 +32,10 @@ sub init {			# Sets things up
     init_pair(6,COLOR_WHITE,COLOR_BLUE);
     init_pair(7,COLOR_BLUE,COLOR_CYAN);
   };
+}
+
+sub done {
+  endwin();
 }
 
 sub mybox {			# Draws your basic 3D box.
@@ -76,37 +80,37 @@ sub mybox {			# Draws your basic 3D box.
 sub getkey {			# Gets a keystroke and returns a code
   my $key = getch();		# and the key if it's printable.
   my $keycode = 0;
-  if ($key == KEY_HOME) {
+  if ($key eq KEY_HOME) {
     $keycode = 1;
   }
-  elsif ($key == KEY_IC) {
+  elsif ($key eq KEY_IC) {
     $keycode = 2;
   }
-  elsif ($key == KEY_DC) {
+  elsif ($key eq KEY_DC) {
     $keycode = 3;
   }
-  elsif ($key == KEY_END) {
+  elsif ($key eq KEY_END) {
     $keycode = 4;
   }
-  elsif ($key == KEY_PPAGE) {
+  elsif ($key eq KEY_PPAGE) {
     $keycode = 5;
   }
-  elsif ($key == KEY_NPAGE) {
+  elsif ($key eq KEY_NPAGE) {
     $keycode = 6;
   }
-  elsif ($key == KEY_UP) {
+  elsif ($key eq KEY_UP) {
     $keycode = 7;
   }
-  elsif ($key == KEY_DOWN) {
+  elsif ($key eq KEY_DOWN) {
     $keycode = 8;
   }
-  elsif ($key == KEY_RIGHT) {
+  elsif ($key eq KEY_RIGHT) {
     $keycode = 9;
   }
-  elsif ($key == KEY_LEFT) {
+  elsif ($key eq KEY_LEFT) {
     $keycode = 10;
   }
-  elsif ($key == KEY_BACKSPACE) {
+  elsif ($key eq KEY_BACKSPACE) {
     $keycode = 11;
   }
   elsif ($key eq "\e") {
@@ -1458,8 +1462,8 @@ sub justify {
     $mode=0;
   }
   $text=~s/\n/\n\t/g;
-  my @text=split("\t",$text);
-  my $j=0;
+  @text=split("\t",$text);
+  $j=0;
   for ($i=0; $j<=$#text; $i++) {
     if (($text[$j] eq "\n") || ($text[$j] eq "\0\n")) {
       $textqq[$i]=$text[$j];
@@ -1474,7 +1478,7 @@ sub justify {
 	$text[$j]=~s/\s*$/\n/;
 	if (($j==$#text) && ($line)) {
 	  $text[$j+1]=$line;
-	  @textqq[$i]=$text[$j];
+	  $textqq[$i]=$text[$j];
 	}
 	elsif (($line) && 
 	       ($text[$j+1]=~/^[\s\0]/)) {
@@ -1796,7 +1800,7 @@ __END__
 
 =head1 NAME
 
-PV - Text-mode User Interface Widgets.
+PerlVision - Text-mode User Interface Widgets.
 
 =head1 SYNOPSIS
 
@@ -2319,16 +2323,20 @@ Curses(3), perl(1).
 
 =head1 AUTHOR
 
-Persistence::Database::SQL is Copyright (c) 2000 Ashish Gulhati
+PerlVision is Copyright (c) 2000 Ashish Gulhati
 <hash@netropolis.org>. All Rights Reserved.
+
+=head1 CONTRIBUTORS
+
+Nick Cabatoff <ncc@cs.mcgill.ca>
 
 =head1 ACKNOWLEDGEMENTS
 
-Thanks to Barkha for existing; to Raj for the good old days when we
-hacked Unix and consumed insane quantities of alcohol; to Emily
-Saliers, Eddie Van Halen and Neil Peart for fantastic music; to
-William Setzer for Perl Curses, Larry Wall for Perl, and RMS for
-Emacs.
+Thanks to Barkha for inspiration and lots of good times; to Raj for
+the good old days when we hacked Unix and consumed insane quantities
+of alcohol; to Emily Saliers, Eddie Van Halen and Neil Peart for
+fantastic music; to William Setzer for Perl Curses, Larry Wall for
+Perl, and RMS for Emacs.
 
 =head1 LICENSE
 
