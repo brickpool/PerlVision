@@ -1,0 +1,77 @@
+PerlVision
+----------
+A long time ago, Ashish needed a simple text mode GUI framework to use for the
+Linux console. at the time, he couldn't find any Perl GUI modules, so out of
+necessity PerlVision was created, which kept growing as he added more and more
+features, so now it's anything but a simple gimmick...
+
+PerlVision provides, in Ashish's view, 90% of the features one would want in a
+user interface, including checkboxes, radio buttons (in three different types !)
+of pushbuttons, list boxes for single and multiple selections, an expandable
+edit box, a scrollable viewbox, single-line text entry boxes, a menu bar with
+pull-down menus, and full popup dialog boxes with multiple controls.
+
+
+INSTALLATION
+------------
+To install this module, run the following commands:
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+
+DEMO PROGRAM
+------------
+The Perl file "rap" is used for demonstration purposes and is a full program at
+the same time.
+
+RAP (Rap Ain't Pico) is a small text editor provided as an example of how to
+code using PerlVision and what PerlVision programs look like. If you'd like to
+provide RAP as an editor on your system for inexperienced users, just great!
+They'll get used to emacs keybindings for basic stuff and won't find it
+intimidating to move to the mother of all editors later. ;-)
+
+Ashish used RAP as a pico replacement on his system at the time the program was
+created.
+
+
+SUPPORT AND DOCUMENTATION
+-------------------------
+After installing, you can find documentation for this module with the
+perldoc command.
+
+    perldoc PV
+
+You can also look for information at:
+
+    GitHub's issues tracker (please report bugs here!)
+        https://github.com/brickpool/PerlVision/issues
+
+    GitHub
+        https://github.com/brickpool/PerlVision
+
+    Search CPAN
+        https://metacpan.org/release/PV
+
+
+MAINTENANCE
+-----------
+J. Schneider maintains the PerlVision module. Jan doesn't actually know much
+about it and mainly acts as a coordinator. Feel free to report bugs and ask
+technical questions to Jan. If you have a correction or improvement, Jan will
+try to incorporate it into the package immediately.
+
+Use the GitHub issues tracker. Do not use the CPAN bug database to report a bug.
+It's more work for both parties and Jan won't know that an issue has been
+reported unless he happens to look.
+
+
+LICENSE AND COPYRIGHT
+---------------------
+This software is Copyright (c) 1995-2000 by Ashish Gulhati.
+
+This is free software, licensed under:
+
+  The Artistic License (see the "LICENSE" which comes with this Kit)

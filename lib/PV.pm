@@ -9,12 +9,11 @@
 #
 # $Id: PV.pm,v 1.5 2000/10/31 08:06:08 cvs Exp $
 
-use 5.000;
+use 5.010;
 package PV;
 use Curses;
-use vars qw ( $VERSION );
-
-( $VERSION ) = '$Revision: 1.5 $' =~ /\s+([\d\.]+)/;
+use version 0.77;
+our $VERSION = version->declare("v1.501");
 
 sub init {			# Sets things up
   initscr();
@@ -1800,7 +1799,11 @@ __END__
 
 =head1 NAME
 
-PerlVision - Text-mode User Interface Widgets.
+PV - PerlVision: Text-mode User Interface Widgets.
+
+=head1 VERSION
+
+Version 1.5
 
 =head1 SYNOPSIS
 
@@ -2296,6 +2299,8 @@ much to list here.
 
 =head1 HISTORY
 
+=over 2
+
 =item B<v0.1> 
 
 March 1995. First release. Didn't use curses, did its own screen
@@ -2351,4 +2356,3 @@ love to hear about projects that make use of this module.
 This is free software. If it breaks, you own both parts.
 
 =cut
-

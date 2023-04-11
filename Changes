@@ -1,0 +1,32 @@
+Revision change log for package PerlVision
+
+1.501   2023-04-11
+        Add a README and LICENCE to the distribution.
+        Add a Makefile.PL (for ExtUtils::MakeMaker/Module::Install).
+        Add a Changelog (named 'Changes') to the distribution.
+        Add some basic tests
+        List used modules in MYMETA.yml requires
+        Remove the POD errors.
+
+1.5     2000-10-31
+        Add PV::done() as equivalent to PV::init()
+        Adding the copyright and contributors information
+        Minor Bug fixes in method mybox
+
+1.4     2000-07-29
+        Add MANIFEST to the distribution and upload the Package to BackPAN
+
+1.x     July 2000
+        Moved docs to pod format and put PV in CVS. Brought PV packaging up to
+        date with a 2 digit version number and a Makefile.PL (sorry no!).
+        Hopefully this means Ashish going to finally do some work on PV soon!
+
+0.2     April 1995
+        Ashish found Will Setzer's Curses interface for Perl and did a rewrite
+        using curses/ncurses. Tremendously speeded up and much more portable.
+        Turned into a real Perl 5 module. Many thanx to Tim Bunce for helping
+        clear up my confusion about modules.
+
+0.1     March 1995
+        First release. Didn't use curses, did its own screen optimization, which
+        was in Perl and very slow.
