@@ -18,7 +18,6 @@ my %WriteMakefileArgs = (
     },
     PREREQ_PM => {
         'Curses'    => '0',
-        'version'   => '0.77'
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'PV-*' },

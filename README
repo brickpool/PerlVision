@@ -1,9 +1,9 @@
 PerlVision
 ----------
 A long time ago, Ashish needed a simple text mode GUI framework to use for the
-Linux console. at the time, he couldn't find any Perl GUI modules, so out of
+Linux console. At the time, he couldn't find any Perl GUI modules, so out of
 necessity PerlVision was created, which kept growing as he added more and more
-features, so now it's anything but a simple gimmick...
+features, so now it's anything other than a simple gimmick...
 
 PerlVision provides, in Ashish's view, 90% of the features one would want in a
 user interface, including checkboxes, radio buttons (in three different types !)
@@ -53,20 +53,19 @@ You can also look for information at:
         https://github.com/brickpool/PerlVision
 
     Search CPAN
-        https://metacpan.org/release/PV
+        https://metacpan.org/dist/PerlVision
 
 
 MAINTENANCE
 -----------
-J. Schneider maintains the PerlVision module. Jan doesn't actually know much
-about it and mainly acts as a coordinator. Feel free to report bugs and ask
-technical questions to Jan. If you have a correction or improvement, Jan will
-try to incorporate it into the package immediately.
+J. Schneider (that's me) maintains the PerlVision module. I don't actually 
+know much about it and mainly act as a coordinator. Feel free to report bugs 
+to me and ask technical questions. If you have a correction or improvement, 
+I will try to incorporate it into the package immediately.
 
-Use the GitHub issues tracker. Do not use the CPAN bug database to report a bug.
-It's more work for both parties and Jan won't know that an issue has been
-reported unless he happens to look.
-
+Use the GitHub issues tracker. Do not use the CPAN bug database to report a 
+bug. It's more work for both parties, and I won't know that an issue has been 
+reported unless I happen to look.
 
 LICENSE AND COPYRIGHT
 ---------------------
@@ -74,4 +73,4 @@ This software is Copyright (c) 1995-2000 by Ashish Gulhati.
 
 This is free software, licensed under:
 
-  The Artistic License (see the "LICENSE" which comes with this Kit)
+  The Artistic License (see the License file which comes with this Kit)

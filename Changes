@@ -1,20 +1,26 @@
 Revision change log for package PerlVision
 
+1.502   2024-09-12
+        - Update of source code with perltidy
+        - Update files MANIFEST.*/META.*/Changes
+        - Bugfix uninitialized value at line 1348
+        - Bugfix Argument isn't numeric at line 498
+
 1.501   2023-04-11
-        Add a README and LICENCE to the distribution.
-        Add a Makefile.PL (for ExtUtils::MakeMaker/Module::Install).
-        Add a Changelog (named 'Changes') to the distribution.
-        Add some basic tests
-        List used modules in MYMETA.yml requires
-        Remove the POD errors.
+        - Add a README and LICENCE to the distribution.
+        - Add a Makefile.PL (for 'ExtUtils::MakeMaker/Module::Install').
+        - Add a Changelog (named 'Changes') to the distribution.
+        - Add some basic tests
+        - Add used META.* files
+        - Remove the POD errors.
 
 1.5     2000-10-31
-        Add PV::done() as equivalent to PV::init()
-        Adding the copyright and contributors information
-        Minor Bug fixes in method mybox
+        - Add 'PV::done' as equivalent to 'PV::init'
+        - Adding the copyright and contributors information
+        - Minor Bug fixes in method mybox
 
 1.4     2000-07-29
-        Add MANIFEST to the distribution and upload the Package to BackPAN
+        - Add MANIFEST to the distribution and upload the Package to BackPAN
 
 1.x     July 2000
         Moved docs to pod format and put PV in CVS. Brought PV packaging up to
