@@ -1,5 +1,5 @@
-PerlVision
-----------
+=head1 PerlVision
+
 A long time ago, Ashish needed a simple text mode GUI framework to use for the
 Linux console. At the time, he couldn't find any Perl GUI modules, so out of
 necessity PerlVision was created, which kept growing as he added more and more
@@ -12,8 +12,8 @@ edit box, a scrollable viewbox, single-line text entry boxes, a menu bar with
 pull-down menus, and full popup dialog boxes with multiple controls.
 
 
-INSTALLATION
-------------
+=head2 INSTALLATION
+
 To install this module, run the following commands:
 
 	perl Makefile.PL
@@ -22,8 +22,8 @@ To install this module, run the following commands:
 	make install
 
 
-DEMO PROGRAM
-------------
+=head2 DEMO PROGRAM
+
 The Perl file "rap" is used for demonstration purposes and is a full program at
 the same time.
 
@@ -37,8 +37,8 @@ Ashish used RAP as a pico replacement on his system at the time the program was
 created.
 
 
-SUPPORT AND DOCUMENTATION
--------------------------
+=head2 SUPPORT AND DOCUMENTATION
+
 After installing, you can find documentation for this module with the
 perldoc command.
 
@@ -56,8 +56,8 @@ You can also look for information at:
         https://metacpan.org/dist/PerlVision
 
 
-MAINTENANCE
------------
+=head2 MAINTENANCE
+
 J. Schneider (that's me) maintains the PerlVision module. I don't actually 
 know much about it and mainly act as a coordinator. Feel free to report bugs 
 to me and ask technical questions. If you have a correction or improvement, 
@@ -67,10 +67,10 @@ Use the GitHub issues tracker. Do not use the CPAN bug database to report a
 bug. It's more work for both parties, and I won't know that an issue has been 
 reported unless I happen to look.
 
-LICENSE AND COPYRIGHT
----------------------
+=head2 LICENSE AND COPYRIGHT
+
 This software is Copyright (c) 1995-2000 by Ashish Gulhati.
 
 This is free software, licensed under:
 
-  The Artistic License (see the License file which comes with this Kit)
+    The Artistic License (see the License file which comes with this Kit)

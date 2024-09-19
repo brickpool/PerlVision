@@ -1,5 +1,11 @@
 Revision change log for package PerlVision
 
+1.503   2024-09-19
+        - Several bug fixes (e.g. uninitialized value)
+        - Add 'Class::Struct' for named attributes
+        - Change README to README.pod
+        - Update return statement at each sub end
+
 1.502   2024-09-12
         - Update of source code with perltidy
         - Update files MANIFEST.*/META.*/Changes

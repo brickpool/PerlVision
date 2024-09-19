@@ -13,12 +13,14 @@ use 5.010;
 use strict;
 use warnings;
 
+#----------
 package PV;
+#----------
 use Curses;
-our $VERSION = 1.502;
+our $VERSION = 1.503;
 
 # Sets things up
-sub init {
+sub init {    # void ()
   initscr();
   raw();
   noecho();
@@ -33,14 +35,16 @@ sub init {
     init_pair( 6, COLOR_WHITE, COLOR_BLUE );
     init_pair( 7, COLOR_BLUE,  COLOR_CYAN );
   };
+  return;
 } #/ sub init
 
-sub done {
+sub done {    # void ()
   endwin();
+  return;
 }
 
 # Draws your basic 3D box.
-sub mybox {
+sub mybox {    # void ($x1, $y1, $x2, $y2, $style, $color, $window)
   my ( $x1, $y1, $x2, $y2, $style, $color, $window ) = @_;
   my $lines = $x2 - $x1;
   my $j;
@@ -79,15 +83,15 @@ sub mybox {
     addstr( $window, " " x ( $lines - 1 ) );
   }
   attroff( $window, A_BOLD );
+  return;
 } #/ sub mybox
 
 # Gets a keystroke and returns a code
 # and the key if it's printable.
-sub getkey {
-  my ( $ch, $key ) = getchar();
+sub getkey {    # $key, $keycode ()
+  my $key = getch();
   my $keycode = 0;
-
-  if ( defined $key ) {
+  if ( $key =~ /^\d+$/ && $key >= 0x100 ) {
     if ( $key eq KEY_HOME ) {
       $keycode = 1;
     }
@@ -145,36 +149,30 @@ sub getkey {
     elsif ( keyname( $key ) eq 'CTL_RIGHT' ) {
       $keycode = 20;
     }
-  } #/ if ( defined $key )
-  elsif ( defined $ch ) {
-    if ( $ch eq "\e" ) {
-      $ch = getch();
-      if ( $ch =~ /[WwBbFfIiQqVv<>DdXxHh]/ ) {    # Meta keys
-        ( $ch =~ /[Qq]/ ) && ( $keycode = 12 );   # M-q
-        ( $ch =~ /[Bb]/ ) && ( $keycode = 13 );   # M-b
-        ( $ch =~ /[Dd]/ ) && ( $keycode = 14 );   # M-d
-        ( $ch =~ /[Vv]/ ) && ( $keycode = 15 );   # M-v
-        ( $ch eq "<" )    && ( $keycode = 16 );   # M-<
-        ( $ch eq ">" )    && ( $keycode = 17 );   # M->
-        ( $ch =~ /[Hh]/ ) && ( $keycode = 18 );   # M-h
-        ( $ch =~ /[Xx]/ ) && ( $keycode = 19 );   # M-x
-        ( $ch =~ /[Ff]/ ) && ( $keycode = 20 );   # M-f
-        ( $ch =~ /[Ii]/ ) && ( $keycode = 21 );   # M-i
-        ( $ch =~ /[Ww]/ ) && ( $keycode = 22 );   # M-w
-      } #/ if ( $ch =~ /[WwBbFfIiQqVv<>DdXxHh]/)
-      else {
-        $keycode = 100;
-      }
-    } #/ if ( $ch eq "\e" )
-    elsif ( $ch =~ /[A-Za-z0-9_ \t\n\r~\`!@#\$%^&*()\-+=\\|{}[\];:'"<>,.\/?]/ ) {
-      ( $keycode = 200 );
+  } #/ if ( $key =~ /^\d+$/ &&...)
+  elsif ( $key eq "\e" ) {
+    $key = getch();
+    if ( $key =~ /[WwBbFfIiQqVv<>DdXxHh]/ ) {    # Meta keys
+      ( $key =~ /[Qq]/ ) && ( $keycode = 12 );   # M-q
+      ( $key =~ /[Bb]/ ) && ( $keycode = 13 );   # M-b
+      ( $key =~ /[Dd]/ ) && ( $keycode = 14 );   # M-d
+      ( $key =~ /[Vv]/ ) && ( $keycode = 15 );   # M-v
+      ( $key eq "<" )    && ( $keycode = 16 );   # M-<
+      ( $key eq ">" )    && ( $keycode = 17 );   # M->
+      ( $key =~ /[Hh]/ ) && ( $keycode = 18 );   # M-h
+      ( $key =~ /[Xx]/ ) && ( $keycode = 19 );   # M-x
+      ( $key =~ /[Ff]/ ) && ( $keycode = 20 );   # M-f
+      ( $key =~ /[Ii]/ ) && ( $keycode = 21 );   # M-i
+      ( $key =~ /[Ww]/ ) && ( $keycode = 22 );   # M-w
+    } #/ if ( $key =~ /[WwBbFfIiQqVv<>DdXxHh]/)
+    else {
+      $keycode = 100;
     }
-  } #/ elsif ( defined $ch )
-  else {
-    die "getchar() failed";
+  } #/ if ( $key eq "\e" )
+  elsif ( $key =~ /[A-Za-z0-9_ \t\n\r~\`!@#\$%^&*()\-+=\\|{}[\];:'"<>,.\/?]/ ) {
+    $keycode = 200;
   }
-
-  return ( $ch, $keycode );
+  return ( $key, $keycode );
 } #/ sub getkey
 
 # Trivial static text class for dialog boxes
@@ -185,32 +183,51 @@ use strict;
 use warnings;
 use Curses;
 
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_ );
-  my $self   = \@params;
-  bless $self;
-}
+use Class::Struct
+  view => 'Curses::Window',
+  text => '$',
+  ax   => '$',
+  ay   => '$',
+  bx   => '$',
+  by   => '$',
+  ;
 
-sub place {
+around: {    # $obj ($class, $atext, $x1, $y1, $x2, $y2)
+  no warnings 'redefine';
+  my $orig  = \&new; *new = sub {
+  my $class = shift;
+  my ( $atext, $x1, $y1, $x2, $y2 ) = @_;
+  return $class->$orig(
+    view => stdscr,
+    text => $atext,
+    ax   => $x1,
+    ay   => $y1,
+    bx   => $x2,
+    by   => $y2,
+  );
+}}
+
+sub place {    # void ($self)
   my $self = shift;
-  my ( $message, $x1, $y1, $x2, $y2 ) = @$self[ 1 .. 5 ];
-  my @message = split( "\n", $message );
-  my $width   = $x2 - $x1;
-  my $depth   = $y2 - $y1;
-  my $i       = $y1;
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  foreach ( @message[ 0 .. $depth ] ) {
-    move( $$self[0], $i, $x1 );
-    addstr( $$self[0], substr( $_, 0, $width ) );
-    $i++;
+  my ( $x1, $y1, $x2, $y2 ) = ( $self->ax, $self->ay, $self->bx, $self->by );
+  my @lines = split( "\n", $self->text );
+  my $dx = $x2 - $x1;
+  my $dy = $y2 - $y1;
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  foreach ( @lines[ 0 .. $dy ] ) {
+    $_ = '' unless defined;    # $_ //= '';
+    move( $self->view, $y1, $x1 );
+    addstr( $self->view, substr( $_, 0, $dx ) );
+    $y1++;
   }
+  return;
 } #/ sub place
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
+  $self->place();
+  refresh( $self->view );
+  return;
 }
 
 #--------------------
@@ -219,106 +236,119 @@ package PV::Checkbox;
 use strict;
 use warnings;
 use Curses;
+use Class::Struct
+  view  => 'Curses::Window',
+  label => '$',
+  x     => '$',
+  y     => '$',
+  mark  => '$',
+  ;
 
-# Creates your basic check box
-#   $foo = PV::Checkbox->new(Label,x,y,stat);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_ );
-  my $self   = \@params;
-  bless $self;
-  return $self;
-}
+# Creates a basic check box
+around: {    # $obj ($class, $label, $x, $y, $sel)
+  no warnings 'redefine';
+  my $orig  = \&new; *new = sub {
+  my $class = shift;
+  my ( $label, $x, $y, $sel ) = @_;
+  return $class->$orig(
+    view  => stdscr, 
+    label => $label,
+    x     => $x, 
+    y     => $y, 
+    mark  => $sel,
+  );
+}}
 
-sub place {
+sub place {    # void ($self)
   my $self = shift;
-  move( $$self[0], $$self[3], $$self[2] );
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  addstr( $$self[0], "[" );
-  attroff( $$self[0], A_BOLD );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  ( $$self[4] ) && addch( $$self[0], ACS_RARROW );
-  ( $$self[4] ) || addstr( $$self[0], " " );
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  addstr( $$self[0], "]" );
-  attroff( $$self[0], A_BOLD );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  addstr( $$self[0], " $$self[1]" );
+  move( $self->view, $self->y, $self->x );
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  addstr( $self->view, "[" );
+  attroff( $self->view, A_BOLD );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  if ( $self->mark ) { addch( $self->view, ACS_RARROW ) }
+  else               { addstr( $self->view, " " ) }
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  addstr( $self->view, "]" );
+  attroff( $self->view, A_BOLD );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  addstr( $self->view, " " . $self->label );
+  return;
 } #/ sub place
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
+  $self->place();
+  refresh( $self->view );
+  return;
 }
 
 # Refreshes display of your check box
-sub rfsh {
+sub rfsh {    # void ($self)
   my $self = shift;
-  move( $$self[0], $$self[3], $$self[2] + 1 );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  ( $$self[4] ) && addch( $$self[0], ACS_RARROW );
-  ( $$self[4] ) || addstr( $$self[0], " " );
-  move( $$self[0], $$self[3], $$self[2] + 1 );
-  refresh( $$self[0] );
-}
+  move( $self->view, $self->y, $self->x + 1 );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  if ( $self->mark ) { addch( $self->view, ACS_RARROW ) }
+  else               { addstr( $self->view, " " ) }
+  move( $self->view, $self->y, $self->x + 1 );
+  refresh( $self->view );
+  return;
+} #/ sub rfsh
 
 # Makes checkbox active
-#   $foo->activate;
-sub activate {
+sub activate {    # $cmd ($self)
   my $self = shift;
-  my @key;
   $self->rfsh;
-
   # refresh_cursor();
 
-  while ( @key = PV::getkey() ) {
+  while ( my @key = PV::getkey() ) {
 
-    if ( $key[1] == 7 ) {       # UpArrow
-      return 1;
-    }
-    elsif ( $key[1] == 8 ) {    # DnArrow
-      return 2;
-    }
-    elsif ( $key[1] == 9 ) {    # RightArrow
-      return 3;
-    }
-    elsif ( $key[1] == 10 ) {   # LeftArrow
-      return 4;
-    }
-    elsif ( $key[1] == 18 ) {   # Help
-      return 5;
-    }
-    elsif ( $key[1] == 19 ) {   # Menu
-      return 6;
-    }
-    elsif ( ( $key[0] eq "\t" ) && ( $key[1] == 200 ) ) {
-      return 7;
-    }
-
-    elsif ( ( $key[0] eq ' ' ) && ( $key[1] == 200 ) ) {
-      $self->select;
-    }
+    switch: {
+      case: $key[1] == 7 and do {    # UpArrow
+        return 1;
+      };
+      case: $key[1] == 8 and do {    # DnArrow
+        return 2;
+      };
+      case: $key[1] == 9 and do {    # RightArrow
+        return 3;
+      };
+      case: $key[1] == 10 and do {    # LeftArrow
+        return 4;
+      };
+      case: $key[1] == 18 and do {    # Help
+        return 5;
+      };
+      case: $key[1] == 19 and do {    # Menu
+        return 6;
+      };
+      case: ( $key[1] == 200 ) && ( $key[0] eq "\t" ) and do {
+        return 7;
+      };
+      case: ( $key[1] == 200 ) && ( $key[0] eq ' ' ) and do {
+        $self->select;
+        last;
+      };
+    } #/ switch:
     $self->rfsh;
-
     # refresh_cursor();
 
   } #/ while ( @key = PV::getkey...)
 } #/ sub activate
 
 # Toggles checkbox status
-sub select {
+sub select {    # void ($self)
   my $self = shift;
-  $$self[4] = ( $$self[4] ? 0 : 1 );
+  $self->mark( $self->mark ? 0 : 1 );
+  return;
 }
 
 # Returns status of checkbox
-#   $bar = $foo->stat;
-sub stat {
+sub stat {    # $enbld ($self)
   my $self = shift;
-  return $$self[4];
+  return $self->state;
 }
 
 #-----------------
@@ -330,73 +360,77 @@ use Curses;
 use parent -norequire, qw(PV::Checkbox);
 
 # Creates your basic radio button
-#   $foo = PV::Radio->new(Label,x,y,stat);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_, 0 );
-  my $self   = \@params;
-  bless $self;
-  return $self;
+sub new {    # $obj ($class, $label, $x, $y, $sel)
+  my $class = shift;
+  my ( $label, $x, $y, $sel ) = @_;
+  my $self = $class->SUPER::new( $label, $x, $y, $sel );
+  push @$self, my $group;
+  return bless $self, $class;
 }
 
 # Displays a radio button
-#   $foo->display;
-sub place {
+sub place {    # void ($self)
   my $self = shift;
-  move( $$self[0], $$self[3], $$self[2] );
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  addstr( $$self[0], "(" );
-  attroff( $$self[0], A_BOLD );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  ( $$self[4] ) && addch( $$self[0], ACS_DIAMOND );
-  ( $$self[4] ) || addstr( $$self[0], " " );
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  addstr( $$self[0], ")" );
-  attroff( $$self[0], A_BOLD );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  addstr( $$self[0], " $$self[1]" );
+  move( $self->view, $self->y, $self->x );
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  addstr( $self->view, "(" );
+  attroff( $self->view, A_BOLD );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  if ( $self->mark ) { addch( $self->view, ACS_DIAMOND ) }
+  else               { addstr( $self->view, " " ) }
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  addstr( $self->view, ")" );
+  attroff( $self->view, A_BOLD );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  addstr( $self->view, " " . $self->label );
+  return;
 } #/ sub place
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
+  $self->place();
+  refresh( $self->view );
+  return;
 }
 
 # Refreshes display of your check box
-sub rfsh {
+sub rfsh {    # void ($self)
   my $self = shift;
-  move( $$self[0], $$self[3], $$self[2] + 1 );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  ( $$self[4] ) && addch( $$self[0], ACS_DIAMOND );
-  ( $$self[4] ) || addstr( $$self[0], " " );
-  move( $$self[0], $$self[3], $$self[2] + 1 );
-  refresh( $$self[0] );
-}
+  move( $self->view, $self->y, $self->x + 1 );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  if ( $self->mark ) { addch( $self->view, ACS_DIAMOND ) }
+  else               { addstr( $self->view, " " ) }
+  move( $self->view, $self->y, $self->x + 1 );
+  refresh( $self->view );
+  return;
+} #/ sub rfsh
 
-# Puts the button in a group
-# Should not be called from outside
-sub group {
+# Gets the associated group.
+# Puts the button in a group, should not be called from outside
+sub group {    # $group ($self, | $group)
   my $self = shift;
-  $$self[6] = shift;
+  $self->[6] = shift if @_;
+  return $self->[6];
 }
 
 # Turn radio button on
-sub select {
+sub select {    # void ($self)
   my $self = shift;
-  unless ( $$self[4] ) {
-    $$self[6]->blank if $$self[6];
-    $$self[4] = 1;
-    $$self[6]->rfsh;
+  unless ( $self->mark ) {
+    $self->group->blank if $self->group;
+    $self->mark( 1 );
+    $self->group->rfsh;
   }
+  return;
 }
 
 # Turn radio button off
-sub unselect {
+sub unselect {    # void ($self)
   my $self = shift;
-  $$self[4] = 0;
+  $self->mark( 0 );
+  return;
 }
 
 #------------------
@@ -407,58 +441,56 @@ use warnings;
 use Curses;
 
 # Creates your basic radio button group
-#   $foo = PV::RadioG->new(rb1, rb2, rb3...
-# where rbn is of class PV::Radio
-sub new {
-  my $type   = shift;
-  my @params = @_;
-  my $self   = \@params;
-  my $i;
-  bless $self;
-  foreach $i ( @$self ) {
-    ( $i->group( $self ) );
+#   $obj = PV::RadioG->new($rb1, $rb2, $rb3, ...);
+# where $rbN is of class 'PV::Radio'
+sub new {    # $obj ($class, @rb)
+  my $class = shift;
+  my @items = @_;
+  my $self  = [ @items ];
+  foreach my $item ( @$self ) {
+    $item->group( $self );
   }
-  return $self;
+  return bless $self, $class;
 } #/ sub new
 
-sub place {
+sub place {    # void ($self)
   my $self = shift;
-  my $i;
-  foreach $i ( @$self ) {
-    $i->display;
+  foreach my $item ( @$self ) {
+    $item->display;
   }
+  return;
 }
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
+  $self->place();
+  return;
 }
 
-sub rfsh {
+sub rfsh {    # void ($self)
   my $self = shift;
-  my $i;
-  foreach $i ( @$self ) {
-    $i->rfsh;
+  foreach my $item ( @$self ) {
+    $item->rfsh;
   }
+  return;
 }
 
 # Unchecks all buttons in the group
-sub blank {
+sub blank {    # void ($self)
   my $self = shift;
-  my $i;
-  foreach $i ( @$self ) {
-    $i->unselect;
+  foreach my $item ( @$self ) {
+    $item->unselect;
   }
+  return;
 }
 
 # Returns label of selected radio button
-sub stat {
+sub stat {    # $label ($self)
   my $self = shift;
-  my $i;
-  foreach $i ( @$self ) {
-    ( $i->stat ) && ( return $$i[0] );
+  foreach my $item ( @$self ) {
+    return $item->label if $item->stat;
   }
-  return undef;
+  return '';
 }
 
 #----------------------
@@ -467,90 +499,115 @@ package PV::Pushbutton;
 use strict;
 use warnings;
 use Curses;
+use Class::Struct
+  view  => 'Curses::Window',
+  label => '$',
+  x     => '$',
+  y     => '$',
+  ;
 
 # Creates a basic pushbutton
-#   PV::Pushbutton->new("Label",x1,y1);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_ );
-  my $self   = \@params;
-  bless $self;
-}
+around: {    # $obj ($class, $label, $x, $y);
+  no warnings 'redefine';
+  my $orig  = \&new; *new = sub {
+  my $class = shift;
+  my ( $label, $x, $y ) = @_;
+  return $class->$orig(
+    view  => stdscr,
+    label => $label,
+    x     => $x,
+    y     => $y,
+  );
+}}
 
-sub place {
+sub place {    # void ($self)
   my $self = shift;
-  PV::mybox( @$self[ 2 .. 3 ], $$self[2] + length( $$self[1] ) + 3,
-    $$self[3] + 2, 1, 0, $$self[0] );
-  attron( $$self[0], COLOR_PAIR( 1 ) );
-  move( $$self[0], $$self[3] + 1, $$self[2] + 2 );
-  addstr( $$self[0], $$self[1] );
-}
+  PV::mybox(
+    $self->x,
+    $self->y, 
+    $self->x + length( $self->label ) + 3,
+    $self->y + 2, 
+    1, 0, $self->view
+  );
+  attron( $self->view, COLOR_PAIR( 1 ) );
+  move( $self->view, $self->y + 1, $self->x + 2 );
+  addstr( $self->view, $self->label );
+  return;
+} #/ sub place
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
+  $self->place();
+  refresh( $self->view );
+  return;
 }
 
-sub press {
+sub press {    # void ($self)
   my $self = shift;
-  PV::mybox( @$self[ 2 .. 3 ], $$self[2] + length( $$self[1] ) + 3,
-    $$self[3] + 2, 0, 0, $$self[0] );
-  attron( $$self[0], COLOR_PAIR( 1 ) );
-  move( $$self[0], $$self[3] + 1, $$self[2] + 2 );
-  addstr( $$self[0], $$self[1] );
-  refresh( $$self[0] );
-}
+  PV::mybox(
+    $self->x,
+    $self->y,
+    $self->x + length( $self->label ) + 3,
+    $self->y + 2, 
+    0, 0, $self->view
+  );
+  attron( $self->view, COLOR_PAIR( 1 ) );
+  move( $self->view, $self->y + 1, $self->x + 2 );
+  addstr( $self->view, $self->label );
+  refresh( $self->view );
+  return;
+} #/ sub press
 
-sub active {
+sub active {    # void ($self)
   my $self = shift;
-  attron( $$self[0], COLOR_PAIR( 6 ) );
-  attron( $$self[0], A_BOLD );
-  move( $$self[0], $$self[3] + 1, $$self[2] + 2 );
-  addstr( $$self[0], $$self[1] );
-  attroff( $$self[0], A_BOLD );
-  refresh( $$self[0] );
-}
+  attron( $self->view, COLOR_PAIR( 6 ) );
+  attron( $self->view, A_BOLD );
+  move( $self->view, $self->y + 1, $self->x + 2 );
+  addstr( $self->view, $self->label );
+  attroff( $self->view, A_BOLD );
+  refresh( $self->view );
+  return;
+} #/ sub active
 
-sub activate {
+sub activate {    # $cmd ($self)
   my $self = shift;
   $self->active;
-  my @key;
-  while ( @key = PV::getkey() ) {
+  while ( my @key = PV::getkey() ) {
 
-    if ( $key[1] == 7 ) {       # UpArrow
-      $self->display;
-      return 1;
-    }
-    elsif ( $key[1] == 8 ) {    # DnArrow
-      $self->display;
-      return 2;
-    }
-    elsif ( $key[1] == 9 ) {    # RightArrow
-      $self->display;
-      return 3;
-    }
-    elsif ( $key[1] == 10 ) {   # LeftArrow
-      $self->display;
-      return 4;
-    }
-    elsif ( $key[1] == 18 ) {   # Help
-      $self->display;
-      return 5;
-    }
-    elsif ( $key[1] == 19 ) {   # Menu
-      $self->display;
-      return 6;
-    }
-    elsif ( ( $key[0] eq "\t" ) && ( $key[1] == 200 ) ) {
-      $self->display;
-      return 7;
-    }
-
-    elsif ( ( $key[0] eq ' ' || $key[0] eq "\cM" ) && ( $key[1] == 200 ) ) {
-      $self->press;
-      return 8;
-    }
+    switch: {
+      case: $key[1] == 7 and do {    # UpArrow
+        $self->display;
+        return 1;
+      };
+      case: $key[1] == 8 and do {    # DnArrow
+        $self->display;
+        return 2;
+      };
+      case: $key[1] == 9 and do {    # RightArrow
+        $self->display;
+        return 3;
+      };
+      case: $key[1] == 10 and do {    # LeftArrow
+        $self->display;
+        return 4;
+      };
+      case: $key[1] == 18 and do {    # Help
+        $self->display;
+        return 5;
+      };
+      case: $key[1] == 19 and do {    # Menu
+        $self->display;
+        return 6;
+      };
+      case: ( $key[1] == 200 ) && ( $key[0] eq "\t" ) and do {
+        $self->display;
+        return 7;
+      };
+      case: ( $key[1] == 200 ) && ( $key[0] eq ' ' || $key[0] eq "\cM" ) and do {
+        $self->press;
+        return 8;
+      };
+    } #/ switch:
   } #/ while ( @key = PV::getkey...)
 } #/ sub activate
 
@@ -563,65 +620,65 @@ use Curses;
 use parent -norequire, qw(PV::Pushbutton);
 
 # A smaller, cuter pushbutton
-#   PV::Cutebutton->new("Label",x1,y1);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_ );
-  my $self   = \@params;
-  bless $self;
+sub new {    # $obj ($class, $label, $x, $y);
+  my $class = shift;
+  my ( $label, $x, $y ) = @_;
+  my $self = $class->SUPER::new( $label, $x, $y );
+  return bless $self, $class;
 }
 
-sub place {
+sub place {    # void ($self)
   my $self = shift;
-  attron( $$self[0], COLOR_PAIR( 7 ) );
-  addstr( $$self[0], $$self[3], $$self[2], "  " . $$self[1] . " " );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  addch( $$self[0], ACS_VLINE );
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  move( $$self[0], $$self[3] + 1, $$self[2] );
-  addch( $$self[0], ACS_LLCORNER );
-  attroff( $$self[0], A_BOLD );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  hline( $$self[0], ACS_HLINE, length( $$self[1] ) + 2 );
-  addch( $$self[0], $$self[3] + 1, $$self[2] + length( $$self[1] ) + 3,
-    ACS_LRCORNER );
+  attron( $self->view, COLOR_PAIR( 7 ) );
+  addstr( $self->view, $self->y, $self->x, "  " . $self->label . " " );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  addch( $self->view, ACS_VLINE );
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  move( $self->view, $self->y + 1, $self->x );
+  addch( $self->view, ACS_LLCORNER );
+  attroff( $self->view, A_BOLD );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  hline( $self->view, ACS_HLINE, length( $self->label ) + 2 );
+  addch(
+    $self->view, $self->y + 1, $self->x + length( $self->label ) + 3,
+    ACS_LRCORNER
+  );
+  return;
 } #/ sub place
 
-sub display {
+sub press {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
-}
-
-sub press {
-  my $self = shift;
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  addch( $$self[0], $$self[3], $$self[2], ACS_ULCORNER );
-  hline( $$self[0], ACS_HLINE, length( $$self[1] ) + 2 );
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  addch( $$self[0], $$self[3], $$self[2] + length( $$self[1] ) + 3,
-    ACS_URCORNER );
-  move( $$self[0], $$self[3] + 1, $$self[2] );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  attroff( $$self[0], A_BOLD );
-  addch( $$self[0], ACS_VLINE );
-  attron( $$self[0], COLOR_PAIR( 7 ) );
-  addstr( $$self[0], " " . $$self[1] . "  " );
-  refresh( $$self[0] );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  addch( $self->view, $self->y, $self->x, ACS_ULCORNER );
+  hline( $self->view, ACS_HLINE, length( $self->label ) + 2 );
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  addch(
+    $self->view, $self->y, $self->x + length( $self->label ) + 3,
+    ACS_URCORNER
+  );
+  move( $self->view, $self->y + 1, $self->x );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  attroff( $self->view, A_BOLD );
+  addch( $self->view, ACS_VLINE );
+  attron( $self->view, COLOR_PAIR( 7 ) );
+  addstr( $self->view, " " . $self->label . "  " );
+  refresh( $self->view );
+  return;
 } #/ sub press
 
-sub active {
+sub active {    # void ($self)
   my $self = shift;
-  attron( $$self[0], COLOR_PAIR( 5 ) );
-  attron( $$self[0], A_BOLD );
-  attron( $$self[0], A_REVERSE );
-  move( $$self[0], $$self[3], $$self[2] + 2 );
-  addstr( $$self[0], $$self[1] );
-  attroff( $$self[0], A_BOLD );
-  attroff( $$self[0], A_REVERSE );
-  refresh( $$self[0] );
+  attron( $self->view, COLOR_PAIR( 5 ) );
+  attron( $self->view, A_BOLD );
+  attron( $self->view, A_REVERSE );
+  move( $self->view, $self->y, $self->x + 2 );
+  addstr( $self->view, $self->label );
+  attroff( $self->view, A_BOLD );
+  attroff( $self->view, A_REVERSE );
+  refresh( $self->view );
+  return;
 } #/ sub active
 
 #-----------------------
@@ -633,42 +690,38 @@ use Curses;
 use parent -norequire, qw(PV::Pushbutton);
 
 # A minimal pushbutton
-#   PV::Plainbutton->new("Label",x1,y1);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_ );
-  my $self   = \@params;
-  bless $self;
+sub new {    # $obj ($class, $label, $x, $y);
+  my $class = shift;
+  my ( $label, $x, $y ) = @_;
+  my $self = $class->SUPER::new( $label, $x, $y );
+  return bless $self, $class;
 }
 
-sub place {
+sub place {    # void ($self)
   my $self = shift;
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  move( $$self[0], $$self[3], $$self[2] );
-  addstr( $$self[0], $$self[1] );
-  attroff( $$self[0], A_BOLD );
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  move( $self->view, $self->y, $self->x );
+  addstr( $self->view, $self->label );
+  attroff( $self->view, A_BOLD );
+  return;
 }
 
-sub display {
+sub press {    # void ($self)
+  return;
+}
+
+sub active {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
-}
-
-sub press {
-}
-
-sub active {
-  my $self = shift;
-  attron( $$self[0], COLOR_PAIR( 5 ) );
-  attron( $$self[0], A_BOLD );
-  attron( $$self[0], A_REVERSE );
-  move( $$self[0], $$self[3], $$self[2] );
-  addstr( $$self[0], $$self[1] );
-  refresh( $$self[0] );
-  attroff( $$self[0], A_BOLD );
-  attroff( $$self[0], A_REVERSE );
+  attron( $self->view, COLOR_PAIR( 5 ) );
+  attron( $self->view, A_BOLD );
+  attron( $self->view, A_REVERSE );
+  move( $self->view, $self->y, $self->x );
+  addstr( $self->view, $self->label );
+  refresh( $self->view );
+  attroff( $self->view, A_BOLD );
+  attroff( $self->view, A_REVERSE );
+  return;
 } #/ sub active
 
 #-----------------------
@@ -677,213 +730,262 @@ package PV::_::SListbox;
 use strict;
 use warnings;
 use Curses;
+use Class::Struct
+  view  => 'Curses::Window',
+  label => '$',
+  idx   => '$',
+  ax    => '$',
+  ay    => '$',
+  bx    => '$',
+  by    => '$',
+  ;
 
 # Creates a superclass list box
-#   PV::_::SListbox->new(Head,top,x1,y1,x2,y2,list)
-# where list is (l1,s1,l2,s2,...)
+# $obj = PV::_::SListbox->new($label, $x1, $y1, $x2, $y2, %list);
+# where %list is ( $txt1 => $sel1, $txt2 => $sel2, ... )
 # Do not use from outside
-sub new {
-  my $type   = shift;
-  my $head   = shift;
-  my @params = ( stdscr, $head, 0, @_ );
-  my $self   = \@params;
-  bless $self;
-}
+around: {    # obj ($class, $label, $x1, $y1, $x2, $y2, %list)
+  no warnings 'redefine';
+  my $orig  = \&new; *new = sub {
+  my $class = shift;
+  my ( $label, $x1, $y1, $x2, $y2, @list ) = @_;
+  my $self = $class->$orig(
+    view  => stdscr,
+    label => $label,
+    idx   => 0,
+    ax    => $x1,
+    ay    => $y1,
+    bx    => $x2,
+    by    => $y2,
+  );
+  push @$self, @list;
+  return $self;
+}}
 
-sub place {
+sub place {    # void ($self, | $i)
   my $self = shift;
-  my ( $top, $x1, $y1, $x2, $y2 ) = @$self[ 2 .. 6 ];
+  my $i    = shift || 0;
+  my ( $x1, $y1, $x2, $y2 ) = ( $self->ax, $self->ay, $self->bx, $self->by );
   $self->draw_border;
-  my $i = shift // 0;
   $i *= 2;
   $x1++;
   $y1++;
-  while ( ( $y1 < $y2 ) && ( $i + 7 < $#$self ) ) {
-    ( $$self[ 8 + $i ] ) && ( $self->selected( $y1, $i ) );
-    ( $$self[ 8 + $i ] ) || ( $self->unselected( $y1, $i ) );
+  while ( ( $y1 < $y2 ) && ( 7 + $i < $#$self ) ) {
+    my $enbld = 8 + $i;
+    if ( $self->[ $enbld ] ) { $self->selected( $y1, $i ) }
+    else                     { $self->unselected( $y1, $i ) }
     $y1++;
     $i += 2;
   }
+  return;
 } #/ sub place
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
+  $self->place();
+  refresh( $self->view );
+  return;
 }
 
-sub rfsh {
-  my $self = shift;
-  my ( $top, $x1, $y1, $x2, $y2 ) = @$self[ 2 .. 6 ];
-  my $i = shift;
-  unless ( $i == $top ) {
-    $$self[2] = $i;
+sub rfsh {    # void ($self, $i)
+  my $self  = shift;
+  my ( $i ) = @_;
+  my ( $x1, $y1, $x2, $y2 ) = ( $self->ax, $self->ay, $self->bx, $self->by );
+  if ( $i != $self->idx ) {
+    $self->idx( $i );
     $i *= 2;
     $x1++;
     $y1++;
-    while ( ( $y1 < $y2 ) && ( $i + 7 < $#$self ) ) {
-      ( $$self[ 8 + $i ] ) && ( $self->selected( $y1, $i ) );
-      ( $$self[ 8 + $i ] ) || ( $self->unselected( $y1, $i ) );
+    while ( ( $y1 < $y2 ) && ( 7 + $i < $#$self ) ) {
+      my $enbld = 8 + $i;
+      if ( $self->[ $enbld ] ) { $self->selected( $y1, $i ) }
+      else                     { $self->unselected( $y1, $i ) }
       $y1++;
       $i += 2;
     }
-  } #/ unless ( $i == $top )
-  refresh( $$self[0] );
+  } #/ unless ( $i == $self->idx )
+  refresh( $self->view );
+  return;
 } #/ sub rfsh
 
-sub unhighlight {
+sub unhighlight {    # void ($self, $ypos, $i)
   my $self = shift;
   my ( $ypos, $i ) = @_;
-  ( $$self[ 8 + $i ] ) && ( $self->selected( $ypos, $i ) );
-  ( $$self[ 8 + $i ] ) || ( $self->unselected( $ypos, $i ) );
-  refresh( $$self[0] );
+  my $enbld = 8 + $i;
+  if ( $self->[ $enbld ] ) { $self->selected( $ypos, $i ) }
+  else                     { $self->unselected( $ypos, $i ) }
+  refresh( $self->view );
+  return;
 }
 
-sub highlight {
+sub highlight {    # void ($self, $ypos, $i)
   my $self = shift;
-  my $ypos = shift;
-  my $i    = shift;
-  my ( $x1, $x2 ) = @$self[ 3, 5 ];
+  my ( $ypos, $i ) = @_;
+  my $txt = 7 + $i;
+  my ( $x1, $x2 ) = ( $self->ax, $self->bx );
   $x1++;
-  attron( $$self[0], COLOR_PAIR( 5 ) );
-  attron( $$self[0], A_BOLD );
-  attron( $$self[0], A_REVERSE );
-  move( $$self[0], $ypos, $x1 + 1 );
-  addstr( $$self[0],
-    substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 )
+  attron( $self->view, COLOR_PAIR( 5 ) );
+  attron( $self->view, A_BOLD );
+  attron( $self->view, A_REVERSE );
+  move( $self->view, $ypos, $x1 + 1 );
+  addstr(
+    $self->view,
+    substr( $self->[$txt], 0, $x2 - $x1 - 2 )
       . " " x
-      ( $x2 - $x1 - 2 - length( substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 ) ) ) );
-  attroff( $$self[0], A_BOLD );
-  attroff( $$self[0], A_REVERSE );
-  refresh( $$self[0] );
+      ( $x2 - $x1 - 2 - length( substr( $self->[$txt], 0, $x2 - $x1 - 2 ) ) )
+  );
+  attroff( $self->view, A_BOLD );
+  attroff( $self->view, A_REVERSE );
+  refresh( $self->view );
+  return;
 } #/ sub highlight
 
-sub selected {
+sub selected {    # void ($self, $ypos, $i)
   my $self = shift;
-  my $ypos = shift;
-  my $i    = shift;
+  my ( $ypos, $i ) = @_;
   $self->unselected( $ypos, $i );
+  return;
 }
 
-sub reset {
+sub reset {    # void ($self)
   my $self = shift;
-  my $i;
-  for ( $i = 8 ; $i <= $#$self ; $i += 2 ) {
-    $$self[$i] = 0;
+  for ( my $i = 7 ; $i < @$self ; $i += 2 ) {
+    my $enbld = $i + 1;
+    $self->[ $enbld ] = 0;
   }
   $self->rfsh( 0 );
+  return;
 }
 
-sub stat {
+sub stat {    # @list ($self)
   my $self = shift;
-  my $i;
   my @returnlist = ();
-  for ( $i = 8 ; $i <= $#$self ; $i += 2 ) {
-    ( $$self[$i] ) && ( @returnlist = ( @returnlist, $$self[ $i - 1 ] ) );
+  for ( my $i = 7 ; $i < @$self ; $i += 2 ) {
+    my $txt = $i;
+    my $enbld = $i + 1;
+    push @returnlist, $self->[$txt] if $self->[$enbld];
   }
   $self->reset;
   return @returnlist;
 } #/ sub stat
 
-sub done {
+sub done {    # void ($self, $i)
   my $self = shift;
-  my $i    = shift;
-  $$self[ $i * 2 + 8 ] = 1;
+  my ( $i ) = @_;
+  my $enbld = 8 + $i * 2;
+  $self->[ $enbld ] = 1;
   $self->rfsh( 0 );
+  return;
 }
 
-sub deactivate {
+sub deactivate {    # void ($self)
   my $self = shift;
   $self->reset();
+  return;
 }
 
-sub unselected {
+sub unselected {    # void ($self, $ypos, $i)
   my $self = shift;
-  my $ypos = shift;
-  my $i    = shift;
-  my ( $x1, $x2 ) = @$self[ 3, 5 ];
+  my ( $ypos, $i ) = @_;
+  my $txt = 7 + $i;
+  my ( $x1, $x2 ) = ( $self->ax, $self->bx );
   $x1++;
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  move( $$self[0], $ypos, $x1 + 1 );
-  addstr( $$self[0],
-    substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 )
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  move( $self->view, $ypos, $x1 + 1 );
+  addstr(
+    $self->view,
+    substr( $self->[$txt], 0, $x2 - $x1 - 2 )
       . " " x
-      ( $x2 - $x1 - 2 - length( substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 ) ) ) );
+      ( $x2 - $x1 - 2 - length( substr( $self->[$txt], 0, $x2 - $x1 - 2 ) ) )
+  );
+  return;
 } #/ sub unselected
 
-sub activate {
+sub activate {    # $cmd ($self)
   my $self = shift;
-  my ( $x1, $y1, $x2, $y2 ) = @$self[ 3 .. 6 ];
+  my ( $x1, $y1, $x2, $y2 ) = ( $self->ax, $self->ay, $self->bx, $self->by );
   my $i = 0;
-  my @key;
   $x1++;
   $y1++;
   my $ypos = $y1;
   $self->rfsh( $i );
   $self->highlight( $y1, $i * 2 );
 
-  while ( @key = PV::getkey() ) {
+  while ( my @key = PV::getkey() ) {
 
-    if ( $key[1] == 18 ) {      # Help
-      $self->unhighlight( $ypos, $i * 2 );
-      $self->deactivate();
-      return 5;
-    }
-    elsif ( $key[1] == 19 ) {   # Menu
-      $self->unhighlight( $ypos, $i * 2 );
-      $self->deactivate();
-      return 6;
-    }
-    elsif ( $key[1] == 9 ) {    # RightArrow
-      $self->unhighlight( $ypos, $i * 2 );
-      $self->deactivate();
-      return 3;
-    }
-    elsif ( $key[1] == 10 ) {   # LeftArrow
-      $self->unhighlight( $ypos, $i * 2 );
-      $self->deactivate();
-      return 4;
-    }
-    elsif ( ( $key[1] == 200 ) && ( $key[0] eq "\t" ) ) {
-      $self->unhighlight( $ypos, $i * 2 );
-      $self->deactivate();
-      return 7;
-    }
-    elsif ( ( $key[1] == 200 ) && ( $key[0] eq "\cM" ) ) {
-      $self->unhighlight( $ypos, $i * 2 );
-      $self->done( $i );
-      return 8;
-    }
-    elsif ( ( $key[1] == 200 ) && ( $key[0] eq " " ) ) {
-      $self->select( $i );
-      $self->highlight( $ypos, $i * 2 );
-    }
-    elsif ( ( $key[1] == 7 ) && ( $i != 0 ) ) {                     # Up
-      ( $ypos == $y1 ) || do { $self->unhighlight( $ypos, $i * 2 ); $ypos-- };
-      $i--;
-      $self->rfsh( $i - $ypos + $y1 );
-      $self->highlight( $ypos, $i * 2 );
-    }
-    elsif ( ( $key[1] == 8 ) && ( ( $i * 2 + 9 ) < $#$self ) ) {    # Down
-      ( $ypos == $y2 - 1 ) || do { $self->unhighlight( $ypos, $i * 2 ); $ypos++ };
-      $i++;
-      $self->rfsh( $i - $ypos + $y1 );
-      $self->highlight( $ypos, $i * 2 );
-    }
+    switch: {
+      case: $key[1] == 18 and do {    # Help
+        $self->unhighlight( $ypos, $i * 2 );
+        $self->deactivate();
+        return 5;
+      };
+      case: $key[1] == 19 and do {    # Menu
+        $self->unhighlight( $ypos, $i * 2 );
+        $self->deactivate();
+        return 6;
+      };
+      case: $key[1] == 9 and do {     # RightArrow
+        $self->unhighlight( $ypos, $i * 2 );
+        $self->deactivate();
+        return 3;
+      };
+      case: $key[1] == 10 and do {    # LeftArrow
+        $self->unhighlight( $ypos, $i * 2 );
+        $self->deactivate();
+        return 4;
+      };
+      case: ( $key[1] == 200 ) && ( $key[0] eq "\t" ) and do {
+        $self->unhighlight( $ypos, $i * 2 );
+        $self->deactivate();
+        return 7;
+      };
+      case: ( $key[1] == 200 ) && ( $key[0] eq "\cM" ) and do {
+        $self->unhighlight( $ypos, $i * 2 );
+        $self->done( $i );
+        return 8;
+      };
+      case: ( $key[1] == 200 ) && ( $key[0] eq " " ) and do {
+        $self->select( $i );
+        $self->highlight( $ypos, $i * 2 );
+        last;
+      };
+      case: ( $key[1] == 7 ) && ( $i != 0 ) and do {    # Up
+        if ( $ypos != $y1 ) {
+          $self->unhighlight( $ypos, $i * 2 );
+          $ypos--;
+        }
+        $i--;
+        $self->rfsh( $i - $ypos + $y1 );
+        $self->highlight( $ypos, $i * 2 );
+        last;
+      };
+      case: ( $key[1] == 8 ) && ( ( $i * 2 + 9 ) < $#$self ) and do {    # Down
+        if ( $ypos != $y2 - 1 ) {
+          $self->unhighlight( $ypos, $i * 2 );
+          $ypos++;
+        }
+        $i++;
+        $self->rfsh( $i - $ypos + $y1 );
+        $self->highlight( $ypos, $i * 2 );
+        last;
+      };
+    } #/ switch:
   } #/ while ( @key = PV::getkey...)
 } #/ sub activate
 
-sub draw_border {
+sub draw_border {    # void ($self)
   my $self = shift;
-  PV::mybox( @$self[ 3 .. 6 ], 0, 1, $$self[0] );
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  move( $$self[0], $$self[4], $$self[3] );
-  addstr( $$self[0], $$self[1] );
-  attroff( $$self[0], A_BOLD );
-}
+  PV::mybox( $self->ax, $self->ay, $self->bx, $self->by, 0, 1, $self->view );
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  move( $self->view, $self->ay, $self->ax );
+  addstr( $self->view, $self->label );
+  attroff( $self->view, A_BOLD );
+  return;
+} #/ sub draw_border
 
-sub select {
+sub select {    # void ($self, $i)
+  return;
 }
 
 #-------------------
@@ -895,13 +997,13 @@ use Curses;
 use parent -norequire, qw(PV::_::SListbox);
 
 # Basic single selection listbox
-#   PV::Listbox->new(Head,x1,y1,x2,y2,list)
-# where list is (l1,s1,l2,s2,...)
-sub new {
-  my $type   = shift;
-  my @params = @_;
-  my $self   = PV::_::SListbox->new( @params );
-  bless $self;
+# $obj = PV::Listbox->new($label, $x1, $y1, $x2, $y2, %list);
+# where %list is ($txt1 => $sel1, $txt2 => $sel2, ...)
+sub new {    # $obj ($class, $label, $x1, $y1, $x2, $y2, %list)
+  my $class = shift;
+  my ( $label, $x1, $y1, $x2, $y2, @list ) = @_;
+  my $self = $class->SUPER::new( $label, $x1, $y1, $x2, $y2, @list );
+  return bless $self, $class;
 }
 
 #--------------------
@@ -913,69 +1015,75 @@ use Curses;
 use parent -norequire, qw(PV::_::SListbox);
 
 # A multiple selection listbox
-#   PV::Mlistbox->new(Head,x1,y1,x2,y2,list)
-# where list is (l1,s1,l2,s2,...)
-sub new {
-  my $type   = shift;
-  my @params = @_;
-  my $self   = PV::_::SListbox->new( @params );
-  bless $self;
+# $obj = PV::Mlistbox->new($label, $x1, $y1, $x2, $y2, %list);
+# where %list is ($txt1 => $sel1, $txt2 => $sel2, ...)
+sub new {    # $obj ($class, $label, $x1, $y1, $x2, $y2, %list)
+  my $class = shift;
+  my ( $label, $x1, $y1, $x2, $y2, @list ) = @_;
+  my $self = $class->SUPER::new( $label, $x1, $y1, $x2, $y2, @list );
+  return bless $self, $class;
 }
 
-sub select {
+sub select {    # void ($self, $i)
   my $self = shift;
-  my $i    = shift;
-  if ( $$self[ 8 + $i * 2 ] ) {
-    $$self[ 8 + $i * 2 ] = 0;
-  }
-  else {
-    $$self[ 8 + $i * 2 ] = 1;
-  }
+  my ( $i ) = @_;
+  my $enbld = 8 + $i * 2;
+  $self->[ $enbld ] = $self->[ $enbld ] ? 0 : 1;
+  return;
 } #/ sub select
 
-sub selected {
+sub selected {    # void ($self, $ypos, $i)
   my $self = shift;
-  my $ypos = shift;
-  my $i    = shift;
-  my ( $x1, $x2 ) = @$self[ 3, 5 ];
+  my ( $ypos, $i ) = @_;
+  my $txt = 7 + $i;
+  my ( $x1, $x2 ) = ( $self->ax, $self->bx );
   $x1++;
-  attron( $$self[0], COLOR_PAIR( 4 ) );
-  attron( $$self[0], A_BOLD );
-  move( $$self[0], $ypos, $x1 + 1 );
-  addstr( $$self[0],
-    substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 )
+  attron( $self->view, COLOR_PAIR( 4 ) );
+  attron( $self->view, A_BOLD );
+  move( $self->view, $ypos, $x1 + 1 );
+  addstr(
+    $self->view,
+    substr( $self->[$txt], 0, $x2 - $x1 - 2 )
       . " " x
-      ( $x2 - $x1 - 2 - length( substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 ) ) ) );
-  attroff( $$self[0], A_BOLD );
+      ( $x2 - $x1 - 2 - length( substr( $self->[$txt], 0, $x2 - $x1 - 2 ) ) )
+  );
+  attroff( $self->view, A_BOLD );
+  return;
 } #/ sub selected
 
-sub highlight {
+sub highlight {    # void ($self, $ypos, $i)
   my $self = shift;
-  my $ypos = shift;
-  my $i    = shift;
-  my ( $x1, $x2 ) = @$self[ 3, 5 ];
+  my ( $ypos, $i ) = @_;
+  my $txt = 7 + $i;
+  my $enbld = 8 + $i;
+  my ( $x1, $x2 ) = ( $self->ax, $self->bx );
   $x1++;
-  attron( $$self[0], COLOR_PAIR( 5 ) );
-  $$self[ 8 + $i ] && attron( $$self[0], A_BOLD );
-  attron( $$self[0], A_REVERSE );
-  move( $$self[0], $ypos, $x1 + 1 );
-  addstr( $$self[0],
-    substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 )
+  attron( $self->view, COLOR_PAIR( 5 ) );
+  if ( $self->[$enbld] ) { attron( $self->view, A_BOLD ) }
+  attron( $self->view, A_REVERSE );
+  move( $self->view, $ypos, $x1 + 1 );
+  addstr(
+    $self->view,
+    substr( $self->[$txt], 0, $x2 - $x1 - 2 )
       . " " x
-      ( $x2 - $x1 - 2 - length( substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 ) ) ) );
-  attroff( $$self[0], A_BOLD );
-  attroff( $$self[0], A_REVERSE );
-  refresh( $$self[0] );
+      ( $x2 - $x1 - 2 - length( substr( $self->[$txt], 0, $x2 - $x1 - 2 ) ) )
+  );
+  attroff( $self->view, A_BOLD );
+  attroff( $self->view, A_REVERSE );
+  refresh( $self->view );
+  return;
 } #/ sub highlight
 
-sub deactivate {
+sub deactivate {    # void ($self)
   my $self = shift;
   $self->rfsh();
+  return;
 }
 
-sub done {
+sub done {    # void ($self)
   my $self = shift;
   $self->rfsh();
+  return;
 }
 
 #-----------------------
@@ -988,46 +1096,50 @@ use parent -norequire, qw(PV::_::SListbox);
 
 # A pulldown menu box. Used by PV::Menubar
 # Don't use from outside
-sub new {
-  my $type   = shift;
-  my @params = ( @_ );
-  my $self   = PV::_::SListbox->new( @params );
-  bless $self;
+sub new {    # $obj ($class, $label, $x1, $y1, $x2, $y2, %list)
+  my $class = shift;
+  my ( $label, $x1, $y1, $x2, $y2, @list ) = @_;
+  my $self = $class->SUPER::new( $label, $x1, $y1, $x2, $y2, @list );
+  return bless $self, $class;
 }
 
-sub draw_border {
+sub draw_border {    # void ($self)
   my $self = shift;
-  PV::mybox( @$self[ 3 .. 6 ], 1, 0, $$self[0] );
-  move( $$self[0], $$self[4], $$self[3] );
-  attron( $$self[0], COLOR_PAIR( 2 ) );
-  attron( $$self[0], A_BOLD );
-  addch( $$self[0], ( $$self[$#$self] == 1 ) ? ACS_VLINE : ACS_URCORNER );
-  attroff( $$self[0], A_BOLD );
-  attron( $$self[0], COLOR_PAIR( 1 ) );
-  addstr( $$self[0], " " x ( $$self[5] - $$self[3] - 1 ) );
-  move( $$self[0], $$self[4], $$self[5] );
-  addch( $$self[0], ACS_ULCORNER );
+  PV::mybox( $self->ax, $self->ay, $self->bx, $self->by, 1, 0, $self->view );
+  move( $self->view, $self->ay, $self->ax );
+  attron( $self->view, COLOR_PAIR( 2 ) );
+  attron( $self->view, A_BOLD );
+  addch( $self->view, ( $self->[$#$self] == 1 ) ? ACS_VLINE : ACS_URCORNER );
+  attroff( $self->view, A_BOLD );
+  attron( $self->view, COLOR_PAIR( 1 ) );
+  addstr( $self->view, " " x ( $self->bx - $self->ax - 1 ) );
+  move( $self->view, $self->ay, $self->bx );
+  addch( $self->view, ACS_ULCORNER );
+  return;
 } #/ sub draw_border
 
-sub unselected {
+sub unselected {    # void ($self, $ypos, $i)
   my $self = shift;
-  my $ypos = shift;
-  my $i    = shift;
-  my ( $x1, $x2 ) = @$self[ 3, 5 ];
+  my ( $ypos, $i ) = @_;
+  my $txt = 7 + $i;
+  my ( $x1, $x2 ) = ( $self->ax, $self->bx );
   $x1++;
-  attron( $$self[0], COLOR_PAIR( 5 ) );
-  move( $$self[0], $ypos, $x1 + 1 );
-  addstr( $$self[0],
-    substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 )
+  attron( $self->view, COLOR_PAIR( 5 ) );
+  move( $self->view, $ypos, $x1 + 1 );
+  addstr(
+    $self->view,
+    substr( $self->[$txt], 0, $x2 - $x1 - 2 )
       . " " x
-      ( $x2 - $x1 - 2 - length( substr( $$self[ 7 + $i ], 0, $x2 - $x1 - 2 ) ) ) );
+      ( $x2 - $x1 - 2 - length( substr( $self->[$txt], 0, $x2 - $x1 - 2 ) ) )
+  );
+  return;
 } #/ sub unselected
 
-sub activate {
+sub activate {    # $cmd, $enbld ($self)
   my $self = shift;
-  touchwin( $$self[0] );
+  touchwin( $self->view );
   $self->display();
-  my $ret = $self->PV::_::SListbox::activate();
+  my $ret = $self->SUPER::activate();
   touchwin( stdscr );
   refresh( stdscr );
   return ( $ret, $self->stat() );
@@ -1041,131 +1153,141 @@ use warnings;
 use Curses;
 
 # A menu bar with pulldowns
-#   PV::Menubar->new(Head,width,depth,l,0,l,0,l,0,l,0,l);
-sub new {
-  my $type     = shift;
-  my @params   = @_;
-  my $pulldown = PV::_::Pulldown->new(
-    $params[0], 0, 0, $params[1], $params[2],
-    @params[ 3 .. $#params ], 1
-  );
-  my $panel = newwin( $params[2] + 1, $params[1] + 1, 2, 1 );
-  $$pulldown[0] = $panel;
-  my $self = [ $pulldown, 3 ];
-  bless $self;
-} #/ sub new
+# $obj = PV::Menubar->new($label, $width, $height, %list);
+# where %list is ( $txt1 => 0, $txt2 => 0, ...)
+sub new {    # $obj ($class, $label, $width, $height, %list)
+  my $class = shift;
+  my ( $label, $width, $height, @list ) = @_;
+  my $pulldown = PV::_::Pulldown->new( $label, 0, 0, $width, $height, @list, 1 );
+  my $startoff = 3;
+  my $panel    = newwin( $height + 1, $width + 1, 2, $startoff - 2 );
+  $pulldown->view( $panel );
+  return bless [ $pulldown, $startoff ], $class;
+}
 
 # Add a pulldown to the menubar
-#   $foo->add(Head,width,depth,l,0,l,0,l,0,l,0,l);
-sub add {
-  my $self     = shift;
-  my @params   = @_;
-  my $pulldown = PV::_::Pulldown->new(
-    $params[0], 0, 0, $params[1], $params[2],
-    @params[ 3 .. $#params ], 0
-  );
-  my $startoff = $$self[$#$self] + length( $$self[ $#$self - 1 ][1] ) + 4;
-  my $panel    = newwin( $params[2] + 1, $params[1] + 1, 2, $startoff - 2 );
-  $$pulldown[0]         = $panel;
-  $$self[ $#$self + 1 ] = $pulldown;
-  $$self[ $#$self + 1 ] = $startoff;
+# $obj->add($label, $width, $height, %list);
+# where %list is ( $txt1 => 0, $txt2 => 0, ...)
+sub add {    # void ($self, $label, $width, $height, %list)
+  my $self = shift;
+  my ( $label, $width, $height, @list ) = @_;
+  my $pulldown = PV::_::Pulldown->new( $label, 0, 0, $width, $height, @list, 0 );
+  my $startoff = $self->[$#$self] + length( $self->[ $#$self - 1 ]->label ) + 4;
+  my $panel    = newwin( $height + 1, $width + 1, 2, $startoff - 2 );
+  $pulldown->view( $panel );
+  push @$self, ( $pulldown, $startoff );
+  return;
 } #/ sub add
 
-sub highlight {
+sub highlight {    # void ($self, $i)
   my $self = shift;
-  my $i    = shift;
-  move( 1, $$self[ $i * 2 + 1 ] );
+  my ( $i ) = @_;
+  my $txt = $i * 2;
+  my $enbld = $i * 2 + 1;
+  move( 1, $self->[ $enbld ] );
   attron( COLOR_PAIR( 7 ) );
   attron( A_BOLD );
   attron( A_REVERSE );
-  addstr( $$self[ $i * 2 ][1] );
+  addstr( $self->[ $txt ]->label );
   attroff( A_BOLD );
   attroff( A_REVERSE );
   refresh();
+  return;
 } #/ sub highlight
 
-sub unhighlight {
+sub unhighlight {    # void ($self, $i)
   my $self = shift;
-  my $i    = shift;
-  move( 1, $$self[ $i * 2 + 1 ] );
+  my ( $i ) = @_;
+  my $txt = $i * 2;
+  my $enbld = $i * 2 + 1;
+  move( 1, $self->[ $enbld ] );
   attron( COLOR_PAIR( 1 ) );
-  addstr( $$self[ $i * 2 ][1] );
+  addstr( $self->[ $txt ]->label );
   refresh();
+  return;
 }
 
-sub activate {
+sub activate {    # $cmd, | $enbld ($self)
   my $self = shift;
-  my $i    = 0;
-  my @key;
+  my $i = 0;
   my @ret;
   $self->highlight( $i );
-  while ( @key = PV::getkey() ) {
+  while ( my @key = PV::getkey() ) {
 
-    if ( $key[1] == 18 ) {      # Help
-      $self->unhighlight( $i );
-      return 5;
-    }
-    elsif ( $key[1] == 9 ) {    # RightArrow
-      $$self[ $i * 2 ]->reset();
-      $self->unhighlight( $i );
-      $i = ( ( $i * 2 + 1 == $#$self ) ? 0 : $i + 1 );
-      $self->highlight( $i );
-    }
-    elsif ( $key[1] == 10 ) {   # LeftArrow
-      $$self[ $i * 2 ]->reset();
-      $self->unhighlight( $i );
-      $i = ( $i == 0 ? ( $#$self - 1 ) / 2 : $i - 1 );
-      $self->highlight( $i );
-    }
-    elsif ( ( $key[1] == 200 ) && ( $key[0] eq "\t" ) ) {
-      $self->unhighlight( $i );
-      return 7;
-    }
-    elsif ( ( ( $key[1] == 200 ) && ( $key[0] eq "\cM" ) ) || ( $key[1] == 8 ) ) {
-      while ( @ret = ( $$self[ $i * 2 ]->activate() ) ) {
-        if ( $ret[0] == 3 ) {
-          $$self[ $i * 2 ]->reset();
-          $self->unhighlight( $i );
-          $i = ( ( $i * 2 + 1 == $#$self ) ? 0 : $i + 1 );
-          $self->highlight( $i );
-        }
-        elsif ( $ret[0] == 4 ) {
-          $$self[ $i * 2 ]->reset();
-          $self->unhighlight( $i );
-          $i = ( $i == 0 ? ( $#$self - 1 ) / 2 : $i - 1 );
-          $self->highlight( $i );
-        }
-        else {
-          last;
-        }
-      } #/ while ( @ret = ( $$self[ ...]))
-      refresh;
-      if ( $ret[0] == 5 ) {
+    switch: {
+      case: $key[1] == 18 and do {    # Help
         $self->unhighlight( $i );
         return 5;
-      }
-      elsif ( $ret[0] == 8 ) {
+      };
+      case: $key[1] == 9 and do {     # RightArrow
+        $self->[ $i * 2 ]->reset();
         $self->unhighlight( $i );
-        return ( 8, $$self[ $i * 2 ][1] . ":" . $ret[1] );
-      }
-    } #/ elsif ( ( ( $key[1] == 200...)))
+        $i = ( $i * 2 + 1 == $#$self ) ? 0 : $i + 1;
+        $self->highlight( $i );
+        last;
+      };
+      case: $key[1] == 10 and do {    # LeftArrow
+        $self->[ $i * 2 ]->reset();
+        $self->unhighlight( $i );
+        $i = $i == 0 ? ( $#$self - 1 ) / 2 : $i - 1;
+        $self->highlight( $i );
+        last;
+      };
+      case: ( $key[1] == 200 ) && ( $key[0] eq "\t" ) and do {
+        $self->unhighlight( $i );
+        return 7;
+      };
+      case: ( ( $key[1] == 200 ) && ( $key[0] eq "\cM" ) ) || ( $key[1] == 8 )
+      and do {
+        while ( @ret = ( $self->[ $i * 2 ]->activate() ) ) {
+          if ( $ret[0] == 3 ) {
+            $self->[ $i * 2 ]->reset();
+            $self->unhighlight( $i );
+            $i = ( ( $i * 2 + 1 == $#$self ) ? 0 : $i + 1 );
+            $self->highlight( $i );
+          }
+          elsif ( $ret[0] == 4 ) {
+            $self->[ $i * 2 ]->reset();
+            $self->unhighlight( $i );
+            $i = ( $i == 0 ? ( $#$self - 1 ) / 2 : $i - 1 );
+            $self->highlight( $i );
+          }
+          else {
+            last;
+          }
+        } #/ while ( @ret = ( $self->[...]))
+        refresh();
+        if ( $ret[0] == 5 ) {
+          $self->unhighlight( $i );
+          return 5;
+        }
+        elsif ( $ret[0] == 8 ) {
+          $self->unhighlight( $i );
+          return ( 8, $self->[ $i * 2 ]->label . ":" . $ret[1] );
+        }
+        last;
+      } #/ case: do
+    } #/ switch:
   } #/ while ( @key = PV::getkey...)
 } #/ sub activate
 
-sub place {
+sub place {    # void ($self)
   my $self = shift;
-  my ( $i );
   PV::mybox( 1, 0, 78, 2, 1, 0, stdscr );
-  for ( $i = 0 ; $i <= ( $#$self - 1 ) / 2 ; $i++ ) {
-    move( 1, $$self[ $i * 2 + 1 ] );
-    addstr( $$self[ $i * 2 ][1] );
+  for ( my $i = 0 ; $i < @$self ; $i += 2 ) {
+    my $pulldown = $i;
+    my $xpos     = $i + 1;
+    move( 1, $self->[$xpos] );
+    addstr( $self->[$pulldown]->label );
   }
+  return;
 }
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
+  $self->place();
   refresh();
+  return;
 }
 
 #----------------------
@@ -1174,192 +1296,238 @@ package PV::Entryfield;
 use strict;
 use warnings;
 use Curses;
+use Class::Struct
+  view  => 'Curses::Window',
+  x     => '$',
+  y     => '$',
+  len   => '$',
+  max   => '$',
+  label => '$',
+  value => '$',
+  ;
 
 # Creates your basic text entry field
-#   PV::Entryfield->new(x,y,len,start,label,value);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_ );
-  my $self   = \@params;
-  bless $self;
-}
+# $obj = PV::Entryfield->new($x, $y, $len, $max, $label, $value);
+around: {    # $obj ($class, $x, $y, $len, $max, $label, $value)
+  no warnings 'redefine';
+  my $orig  = \&new; *new = sub {
+  my $class = shift;
+  my ( $x, $y, $len, $max, $label, $value ) = @_;
+  $value = '' unless defined $value;    # $value //= '';
+  return $class->$orig(
+    view  => stdscr,
+    x     => $x,
+    y     => $y,
+    len   => $len,
+    max   => $max,
+    label => $label,
+    value => $value,
+  );
+}}
 
-sub place {
+sub place {    # void ($self, | $start)
   my $self  = shift;
-  my $start = shift;
-  my ( $x, $y, $len, $max, $label, $value ) = @$self[ 1 .. 6 ];
-  move( $$self[0], $y, $x );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  addstr( $$self[0], $label . " " );
-  attron( $$self[0], COLOR_PAIR( 6 ) );
-  attron( $$self[0], A_BOLD );
-  addstr( $$self[0], " " );
-  addstr( $$self[0], substr( $value, $start, $len ) );
-  addstr( $$self[0], "." x ( $len - length( substr( $value, $start, $len ) ) ) );
-  addstr( $$self[0], " " );
-  attroff( $$self[0], A_BOLD );
+  my $start = shift || 0;
+  my $len   = $self->len;
+  my $value = $self->value;
+  move( $self->view, $self->y, $self->x );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  addstr( $self->view, $self->label . " " );
+  attron( $self->view, COLOR_PAIR( 6 ) );
+  attron( $self->view, A_BOLD );
+  addstr( $self->view, " " );
+  addstr( $self->view, substr( $value, $start, $len ) );
+  addstr( $self->view,
+    "." x ( $len - length( substr( $value, $start, $len ) ) ) );
+  addstr( $self->view, " " );
+  attroff( $self->view, A_BOLD );
+  return;
 } #/ sub place
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
+  $self->place();
+  refresh( $self->view );
+  return;
 }
 
-sub rfsh {
+sub rfsh {    # void ($self, $start, $i)
   my $self  = shift;
   my $start = shift;
   my $i     = shift;
-  my ( $x, $y, $len, $oldstart, $label, $value ) = @$self[ 1 .. 6 ];
-  if ( $oldstart == $start ) {
-    move( $$self[0], $y, $x + length( $label ) + 2 + $i - $start );
-    attron( $$self[0], COLOR_PAIR( 6 ) );
-    attron( $$self[0], A_BOLD );
-    addstr( $$self[0], substr( $value, $i, $len - ( $i - $start ) ) );
-    addstr( $$self[0],
-      "." x ( $len - ( $i - $start ) - length( substr( $value, $i, $len ) ) ) );
-    attroff( $$self[0], A_BOLD );
-  }
+  my $len   = $self->len;
+  my $value = $self->value;
+  if ( $self->max == $start ) {
+    move( $self->view, $self->y,
+      $self->x + length( $self->label ) + 2 + $i - $start );
+    attron( $self->view, COLOR_PAIR( 6 ) );
+    attron( $self->view, A_BOLD );
+    addstr( $self->view, substr( $value, $i, $len - ( $i - $start ) ) );
+    addstr(
+      $self->view,
+      "." x ( $len - ( $i - $start ) - length( substr( $value, $i, $len ) ) )
+    );
+    attroff( $self->view, A_BOLD );
+  } #/ if ( $self->max == $start)
   else {
-    $$self[4] = $start;
-    move( $$self[0], $y, $x + length( $label ) + 2 );
-    attron( $$self[0], COLOR_PAIR( 6 ) );
-    attron( $$self[0], A_BOLD );
-    addstr( $$self[0], substr( $value, $start, $len ) );
-    addstr( $$self[0], "." x ( $len - length( substr( $value, $start, $len ) ) ) );
-    attroff( $$self[0], A_BOLD );
-  }
+    $self->max( $start );
+    move( $self->view, $self->y, $self->x + length( $self->label ) + 2 );
+    attron( $self->view, COLOR_PAIR( 6 ) );
+    attron( $self->view, A_BOLD );
+    addstr( $self->view, substr( $value, $start, $len ) );
+    addstr( $self->view,
+      "." x ( $len - length( substr( $value, $start, $len ) ) ) );
+    attroff( $self->view, A_BOLD );
+  } #/ else [ if ( $self->max == $start)]
+  return;
 } #/ sub rfsh
 
 # Makes entryfield active
-sub activate {
+sub activate {    # $cmd ($self)
   my $self        = shift;
   my $OVSTRK_MODE = 0;
-  my ( $x, $y, $len, $max, $label ) = @$self[ 1 .. 5 ];
+  my ( $x, $y, $len ) = ( $self->x, $self->y, $self->len );
   my $i = 0;
-  $x += length( $label ) + 2;
+  $x += length( $self->label ) + 2;
   my $start     = 0;
   my $savestart = 0;
-  my $jump      = ( ( $len % 2 ) ? ( $len + 1 ) / 2 : $len / 2 );
-  my @key;
+  my $jump      = ( $len % 2 ) ? ( $len + 1 ) / 2 : $len / 2;
   $self->rfsh( $start, $i );
-  move( $$self[0], $y, $x );
-  refresh( $$self[0] );
+  move( $self->view, $y, $x );
+  refresh( $self->view );
 
-  while ( @key = PV::getkey() ) {
+  while ( my @key = PV::getkey() ) {
 
-    if ( $key[1] == 7 ) {       # UpArrow
-      $self->rfsh( 0, 0 );
-      refresh( $$self[0] );
-      return 1;
-    }
-    elsif ( $key[1] == 8 ) {    # DnArrow
-      $self->rfsh( 0, 0 );
-      refresh( $$self[0] );
-      return 2;
-    }
-    elsif ( $key[1] == 18 ) {   # Help
-      $self->rfsh( 0, 0 );
-      refresh( $$self[0] );
-      return 5;
-    }
-    elsif ( $key[1] == 19 ) {   # Menu
-      $self->rfsh( 0, 0 );
-      refresh( $$self[0] );
-      return 6;
-    }
-
-    ( $key[1] == 11 ) && do {   # Backspace
-      if ( $i ) {
-        $i--;
-        substr( $$self[6], $i, 1 ) = "";
-        ( $i < $start ) && ( $start -= $jump );
-        ( $start < 0 )  && ( $start = 0 );
-        $self->rfsh( $start, $i );
-        move( $$self[0], $y, $x + $i - $start );
-        refresh( $$self[0] );
-      }
-    };
-    ( $key[1] == 200 ) && do {
-      if ( $key[0] =~ /[\n\r\t\f]/ ) {
-        ( $key[0] eq "\t" ) && do {
-          $self->rfsh( 0, 0 );
-          refresh( $$self[0] );
-          return 7;
-        };
-        ( ( $key[0] eq "\n" ) || ( $key[0] eq "\r" ) ) && do {
-          $self->rfsh( 0, 0 );
-          refresh( $$self[0] );
-          return 8;
-        };
-        ( $key[0] eq "\f" ) && do {
-
-        };
-      } #/ if ( $key[0] =~ /[\n\r\t\f]/)
-      else {
-        substr( $$self[6], $i, $OVSTRK_MODE ) = $key[0];
-        ( $i - $start >= $len ) && ( $start += $jump );
-        $self->rfsh( $start, $i );
-        $i++;
-        move( $$self[0], $y, $x + $i - $start );
-        refresh( $$self[0] );
-      }
-    };
-    ( $key[1] == 1 ) && do {    # Home
-      ( $start ) && ( $self->rfsh( 0, 0 ) );
-      $i     = 0;
-      $start = 0;
-      move( $$self[0], $y, $x );
-      refresh( $$self[0] );
-    };
-    ( $key[1] == 2 ) && do {    # Insert
-      $OVSTRK_MODE = ( $OVSTRK_MODE ? 0 : 1 );
-    };
-    ( $key[1] == 3 ) && do {    # Del
-      if ( $i < length( $$self[6] ) ) {
-        substr( $$self[6], $i, 1 ) = "";
-        $self->rfsh( $start, $i );
-        move( $$self[0], $y, $x + $i - $start );
-        refresh( $$self[0] );
-      }
-    };
-    ( $key[1] == 4 ) && do {    # End
-      $i         = length( $$self[6] );
-      $savestart = $start;
-      ( $start + $len <= length( $$self[6] ) )
-        && ( ( $start = $i - $len + 1 ) < 0 )
-        && ( $start = 0 );
-      ( $savestart != $start ) && ( $self->rfsh( $start, $i ) );
-      move( $$self[0], $y, $x + $i - $start );
-      refresh( $$self[0] );
-    };
-    ( $key[1] == 9 ) && do {    # RightArrow
-      if ( $i < length( $$self[6] ) ) {
-        $i++;
+    switch: {
+      case: $key[1] == 7 and do {    # UpArrow
+        $self->rfsh( 0, 0 );
+        refresh( $self->view );
+        return 1;
+      };
+      case: $key[1] == 8 and do {    # DnArrow
+        $self->rfsh( 0, 0 );
+        refresh( $self->view );
+        return 2;
+      };
+      case: $key[1] == 18 and do {    # Help
+        $self->rfsh( 0, 0 );
+        refresh( $self->view );
+        return 5;
+      };
+      case: $key[1] == 19 and do {    # Menu
+        $self->rfsh( 0, 0 );
+        refresh( $self->view );
+        return 6;
+      };
+      case: $key[1] == 11 and do {    # Backspace
+        if ( $i ) {
+          $i--;
+          substr( $self->value, $i, 1 ) = "";
+          $start -= $jump if $i < $start;
+          $start = 0      if $start < 0;
+          $self->rfsh( $start, $i );
+          move( $self->view, $y, $x + $i - $start );
+          refresh( $self->view );
+        }
+        last;
+      };
+      case: $key[1] == 200 and do {
+        if ( $key[0] =~ /[\n\r\t\f]/ ) {
+          switch: {
+            case: $key[0] eq "\t" and do {
+              $self->rfsh( 0, 0 );
+              refresh( $self->view );
+              return 7;
+            };
+            case: ( $key[0] eq "\n" ) || ( $key[0] eq "\r" ) and do {
+              $self->rfsh( 0, 0 );
+              refresh( $self->view );
+              return 8;
+            };
+            case: $key[0] eq "\f" and do {
+              last;
+            };
+          }
+        } #/ if ( $key[0] =~ /[\n\r\t\f]/)
+        else {
+          substr( $self->[6], $i, $OVSTRK_MODE ) = $key[0];
+          $start += $jump if $i - $start >= $len;
+          $self->rfsh( $start, $i );
+          $i++;
+          move( $self->view, $y, $x + $i - $start );
+          refresh( $self->view );
+        }
+        last;
+      };
+      case: $key[1] == 1 and do {    # Home
+        ( $start ) && ( $self->rfsh( 0, 0 ) );
+        $i     = 0;
+        $start = 0;
+        move( $self->view, $y, $x );
+        refresh( $self->view );
+        last;
+      };
+      case: $key[1] == 2 and do {    # Insert
+        $OVSTRK_MODE = $OVSTRK_MODE ? 0 : 1;
+        last;
+      };
+      case: $key[1] == 3 and do {    # Del
+        if ( $i < length( $self->value ) ) {
+          substr( $self->value, $i, 1 ) = "";
+          $self->rfsh( $start, $i );
+          move( $self->view, $y, $x + $i - $start );
+          refresh( $self->view );
+        }
+        last;
+      };
+      case: $key[1] == 4 and do {    # End
+        $i         = length( $self->value );
         $savestart = $start;
-        ( $i - $start >= $len )  && ( $start += $jump );
-        ( $savestart != $start ) && ( $self->rfsh( $start, $i ) );
-        move( $$self[0], $y, $x + $i - $start );
-        refresh( $$self[0] );
-      }
-    };
-    ( $key[1] == 10 ) && do {   # LeftArrow
-      if ( $i ) {
-        $i--;
-        $savestart = $start;
-        ( $i < $start )          && ( $start -= $jump );
-        ( $start < 0 )           && ( $start = 0 );
-        ( $savestart != $start ) && ( $self->rfsh( $start, $i ) );
-        move( $$self[0], $y, $x + $i - $start );
-        refresh( $$self[0] );
-      }
-    };
+        if ( $start + $len <= length( $self->value ) ) {
+          $start = $i - $len + 1;
+          $start = 0 if $start < 0;
+        }
+        if ( $savestart != $start ) {
+          $self->rfsh( $start, $i );
+        }
+        move( $self->view, $y, $x + $i - $start );
+        refresh( $self->view );
+        last;
+      };
+      case: $key[1] == 9 and do {    # RightArrow
+        if ( $i < length( $self->value ) ) {
+          $i++;
+          $savestart = $start;
+          $start += $jump if $i - $start >= $len;
+          if ( $savestart != $start ) {
+            $self->rfsh( $start, $i );
+          }
+          move( $self->view, $y, $x + $i - $start );
+          refresh( $self->view );
+        } #/ if ( $i < length( $$self...))
+        last;
+      };
+      case: $key[1] == 10 and do {    # LeftArrow
+        if ( $i ) {
+          $i--;
+          $savestart = $start;
+          $start -= $jump if $i < $start;
+          $start = 0      if $start < 0;
+          if ( $savestart != $start ) {
+            $self->rfsh( $start, $i );
+          }
+          move( $self->view, $y, $x + $i - $start );
+          refresh( $self->view );
+        } #/ if ( $i )
+        last;
+      };
+    } #/ switch: for ( $key[1] )
   } #/ while ( @key = PV::getkey...)
 } #/ sub activate
 
-sub stat {
+sub stat { # $text_value ($self)
   my $self = shift;
-  return $$self[6];
+  return $self->value;
 }
 
 #--------------------
@@ -1371,61 +1539,75 @@ use Curses;
 use parent -norequire, qw(PV::Entryfield);
 
 # Creates your basic hidden text entry field
-#   PV::Password->new(x,y,len,max,label,value);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_ );
-  my $self   = \@params;
-  bless $self;
+# $obj = PV::Password->new($x, $y, $len, $max, $label, $value);
+sub new {    # $obj ($class, $x, $y, $len, $max, $label, $value)
+  my $class = shift;
+  my ( $x, $y, $len, $max, $label, $value ) = @_;
+  my $self = $class->SUPER::new( $x, $y, $len, $max, $label, $value );
+  return bless $self, $class;
 }
 
-sub place {
+sub place {    # void ($self, $start)
   my $self  = shift;
   my $start = shift;
-  my ( $x, $y, $len, $max, $label, $value ) = @$self[ 1 .. 6 ];
-  move( $$self[0], $y, $x );
-  attron( $$self[0], COLOR_PAIR( 3 ) );
-  addstr( $$self[0], $label . " " );
-  attron( $$self[0], COLOR_PAIR( 6 ) );
-  attron( $$self[0], A_BOLD );
-  addstr( $$self[0], " " );
-  addstr( $$self[0], "*" x ( length( substr( $value, $start, $len ) ) ) );
-  addstr( $$self[0], "." x ( $len - length( substr( $value, $start, $len ) ) ) );
-  addstr( $$self[0], " " );
-  attroff( $$self[0], A_BOLD );
+  my ( $len, $value ) = ( $self->len, $self->value );
+  move( $self->view, $self->y, $self->x );
+  attron( $self->view, COLOR_PAIR( 3 ) );
+  addstr( $self->view, $self->label . " " );
+  attron( $self->view, COLOR_PAIR( 6 ) );
+  attron( $self->view, A_BOLD );
+  addstr( $self->view, " " );
+  addstr( $self->view, "*" x ( length( substr( $value, $start, $len ) ) ) );
+  addstr(
+    $self->view,
+    "." x ( $len - length( substr( $value, $start, $len ) ) )
+  );
+  addstr( $self->view, " " );
+  attroff( $self->view, A_BOLD );
+  return;
 } #/ sub place
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
+  $self->place();
+  refresh( $self->view );
+  return;
 }
 
-sub rfsh {
+sub rfsh {    # void ($self, $start, $i)
   my $self  = shift;
   my $start = shift;
   my $i     = shift;
-  my ( $x, $y, $len, $oldstart, $label, $value ) = @$self[ 1 .. 6 ];
-  if ( $oldstart == $start ) {
-    move( $$self[0], $y, $x + length( $label ) + 2 + $i - $start );
-    attron( $$self[0], COLOR_PAIR( 6 ) );
-    attron( $$self[0], A_BOLD );
-    addstr( $$self[0],
-      "*" x ( length( substr( $value, $i, $len - ( $i - $start ) ) ) ) );
-    addstr( $$self[0],
-      "." x ( $len - ( $i - $start ) - length( substr( $value, $i, $len ) ) ) );
-    attroff( $$self[0], A_BOLD );
-  } #/ if ( $oldstart == $start)
+  my ( $len, $value ) = ( $self->len, $self->value );
+  if ( $self->max == $start ) {
+    move( $self->view, $self->y,
+      $self->x + length( $self->label ) + 2 + $i - $start );
+    attron( $self->view, COLOR_PAIR( 6 ) );
+    attron( $self->view, A_BOLD );
+    addstr(
+      $self->view,
+      "*" x ( length( substr( $value, $i, $len - ( $i - $start ) ) ) )
+    );
+    addstr(
+      $self->view,
+      "." x ( $len - ( $i - $start ) - length( substr( $value, $i, $len ) ) )
+    );
+    attroff( $self->view, A_BOLD );
+  } #/ if ( $self->max == $start)
   else {
-    $$self[4] = $start;
-    move( $$self[0], $y, $x + length( $label ) + 2 );
-    attron( $$self[0], COLOR_PAIR( 6 ) );
-    attron( $$self[0], A_BOLD );
-    addstr( $$self[0], "*" x ( length( substr( $value, $start, $len ) ) ) );
-    addstr( $$self[0], "." x ( $len - length( substr( $value, $start, $len ) ) ) );
-    attroff( $$self[0], A_BOLD );
-  }
-  refresh( $$self[0] );
+    $self->max( $start );
+    move( $self->view, $self->y, $self->x + length( $self->label ) + 2 );
+    attron( $self->view, COLOR_PAIR( 6 ) );
+    attron( $self->view, A_BOLD );
+    addstr( $self->view, "*" x ( length( substr( $value, $start, $len ) ) ) );
+    addstr(
+      $self->view,
+      "." x ( $len - length( substr( $value, $start, $len ) ) )
+    );
+    attroff( $self->view, A_BOLD );
+  } #/ else [ if ( $self->max == $start)]
+  refresh( $self->view );
+  return;
 } #/ sub rfsh
 
 #--------------------
@@ -1436,7 +1618,9 @@ use warnings;
 use Curses;
 
 # A basic combo-box
-sub new {
+sub new {    # $obj ($class)
+  my $class = shift;
+  return bless [], $class;
 }
 
 #-------------------
@@ -1445,126 +1629,150 @@ package PV::Viewbox;
 use strict;
 use warnings;
 use Curses;
+use Class::Struct
+  view    => 'Curses::Window',
+  ax      => '$',
+  ay      => '$',
+  bx      => '$',
+  by      => '$',
+  text    => '$',
+  ln      => '$',
+  lines   => '@',
+  visible => '@',
+  ;
 
 # A readonly text viewer
-#   PV::Viewbox->new(x1,y1,x2,y2,text,top);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_, [], [] );
-  my $self   = \@params;
-  $$self[5] =~ s/[\r\0]//g;              # Strip nulls & DOShit.
-  $$self[5] =~ s/\t/        /g;          # TABs = 8 spaces.
-  $$self[5] .= "\n";
-  my $text = $$self[5];
-  $text =~ s/\n/\n\t/g;
-  @{ $$self[7] } = split( "\t", $text );
-  @{ $$self[8] } = ();
-  bless $self;
-} #/ sub new
+# $obj = PV::Viewbox->new($x1, $y1, $x2, $y2, $text, $start);
+around: {    # $obj ($class, $x1, $y1, $x2, $y2, $text, $start)
+  no warnings 'redefine';
+  my $orig = \&new; *new = sub {
+  my $class = shift;
+  my ( $x1, $y1, $x2, $y2, $text, $start ) = @_;
+  $text =~ s/[\r\0]//g;        # Strip nulls & DOShit.
+  $text =~ s/\t/        /g;    # TABs = 8 spaces.
+  $text .= "\n";
+  my $lines = $text;
+  $lines =~ s/\n/\n\t/g;
+  return $class->$orig(
+    view  => stdscr,
+    ax    => $x1,
+    ay    => $y1,
+    bx    => $x2,
+    by    => $y2,
+    text  => $text,
+    ln    => $start,
+    lines => [ split( "\t", $lines ) ],
+  );
+}} #/ sub new
 
-sub place {
-  my $self = shift;
-  my ( $x1, $y1, $x2, $y2, $text, $start ) = @$self[ 1 .. 6 ];
-  my $lines = $y2 - $y1 - 2;
-  my $i     = 0;
-  $y1++;
-  PV::mybox( @$self[ 1 .. 4 ], 0, 1, $$self[0] );
+sub place {    # void ($self)
+  my $self  = shift;
+  PV::mybox( $self->ax, $self->ay, $self->bx, $self->by, 0, 1, $self->view );
   $self->rfsh( 1 );
 }
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  $self->place;
-  refresh( $$self[0] );
+  $self->place();
+  refresh( $self->view );
 }
 
-sub rfsh {
+sub rfsh {    # void ($self, $display)
   my $self    = shift;
   my $display = shift;
-  ( $$self[6] > ( $#{ $$self[7] } - $$self[4] + $$self[2] + 2 ) )
-    && ( $$self[6] = $#{ $$self[7] } - $$self[4] + $$self[2] + 2 );
-  ( $$self[6] < 0 ) && ( $$self[6] = 0 );
-  my ( $x1, $y1, $x2, $y2, $text, $start ) = @$self[ 1 .. 6 ];
-  my $lines = $y2 - $y1 - 2;
-  my $l;
-  my $i = 0;
-  $y1++;
-  my $len = 0;
-  attron( $$self[0], COLOR_PAIR( 3 ) );
+  my $dx = $self->bx - $self->ax;
+  my $dy = $self->by - $self->ay;
+  if ( $self->ln > ( $#{ $self->lines } - $dy + 2 ) ) {
+    $self->ln( $#{ $self->lines } - $dy + 2 );
+  }
+  if ( $self->ln < 0 ) {
+    $self->ln( 0 );
+  }
+  attron( $self->view, COLOR_PAIR( 3 ) );
 
-  foreach ( @{ $$self[7] }[ $start .. $start + $lines ] ) {
-    unless ( $$self[8][$i] && $$self[8][$i] eq $_ ) {
-      move( $$self[0], $y1 + $i, $x1 + 2 );
-      $l            = $_;
-      $len          = length( $$self[8][$i] );
-      $$self[8][$i] = $l;
+  my $i = 0;
+  foreach ( @{ $self->lines }[ $self->ln .. $self->ln + $dy - 2] ) {
+    unless ( $self->visible( $i ) && $self->visible( $i ) eq $_ ) {
+      move( $self->view, $self->ay + 1 + $i, $self->ax + 2 );
+      my $l = $_;
+      $self->visible( $i, $l );
       chop( $l );
-      ( length( $l ) > $x2 - $x1 - 3 ) && ( $l = substr( $l, 0, $x2 - $x1 - 3 ) );
-      addstr( $$self[0], $l );
-      if ( length( $l ) < $x2 - $x1 - 3 ) {
-        addstr( $$self[0], " " x ( $x2 - $x1 - 3 - length( $l ) ) );
+      if ( length( $l ) > $dx - 3 ) {
+        $l = substr( $l, 0, $dx - 3 );
       }
-    } #/ unless ( $$self[8][$i] && ...)
+      addstr( $self->view, $l );
+      if ( length( $l ) < $dx - 3 ) {
+        addstr( $self->view, " " x ( $dx - 3 - length( $l ) ) );
+      }
+    } #/ unless ( $self->visible( $i ...))
     $i++;
-  } #/ foreach ( @{ $$self[7] }[ $start...])
-  $self->statusbar;
-  ( $display ) || ( refresh( $$self[0] ) );
+  } #/ foreach ( @{ $self->lines }[ ...])
+  $self->statusbar();
+  refresh( $self->view ) unless $display;
+  return;
 } #/ sub rfsh
 
-sub statusbar {
+sub statusbar {    # void ($self)
+  return;
 }
 
 # Makes viewer active
-sub activate {
+sub activate {    # void ($self)
   my $self = shift;
-  my ( $x1, $y1, $x2, $y2, $text, $start ) = @$self[ 1 .. 6 ];
-  my @key;
   $self->rfsh;
-  move( $$self[0], $y2 - 1, $x2 - 1 );
-  refresh( $$self[0] );
-  while ( @key = PV::getkey() ) {
+  move( $self->view, $self->by - 1, $self->bx - 1 );
+  refresh( $self->view );
+  while ( my @key = PV::getkey() ) {
 
-    if ( $key[1] == 18 ) {      # Help
-      $self->rfsh;
-      return 5;
-    }
-    elsif ( $key[1] == 19 ) {   # Menu
-      $self->rfsh;
-      return 6;
-    }
-    ( $key[1] == 200 ) && do {
-      if ( $key[0] =~ /[\r\t\f]/ ) {
-        ( $key[0] eq "\t" ) && do {
-          $self->rfsh;
-          return 7;
-        };
-      }
-    };
-
-    ( $key[1] == 1 ) && do {    # Home
-      $$self[6] = 0;
-      $self->rfsh;
-    };
-    ( $key[1] == 4 ) && do {    # End
-      $$self[6] = $#{ $$self[7] } - $y2 + $y1 + 2;
-      $self->rfsh;
-    };
-    ( $key[1] == 5 ) && do {    # PgUp
-      $$self[6] -= $y2 - $y1 - 2;
-      $self->rfsh;
-    };
-    ( $key[1] == 6 ) && do {    # PgDown
-      $$self[6] += $y2 - $y1 - 2;
-      $self->rfsh;
-    };
-    ( $key[1] == 7 ) && do {    # UpArrow
-      $$self[6]--;
-      $self->rfsh;
-    };
-    ( $key[1] == 8 ) && do {    # DownArrow
-      $$self[6]++;
-      $self->rfsh;
-    };
+    switch: {
+      case: $key[1] == 18 and do {    # Help
+        $self->rfsh;
+        return 5;
+      };
+      case: $key[1] == 19 and do {    # Menu
+        $self->rfsh;
+        return 6;
+      };
+      case: $key[1] == 200 and do {
+        if ( $key[0] =~ /[\r\t\f]/ ) {
+          if ( $key[0] eq "\t" ) {
+            $self->rfsh;
+            return 7;
+          }
+        }
+        last;
+      };
+      case: $key[1] == 1 and do {    # Home
+        $self->ln( 0 );
+        $self->rfsh;
+        last;
+      };
+      case: $key[1] == 4 and do {    # End
+        $self->ln( $#{ $self->lines } - $self->by + $self->ay + 2 );
+        $self->rfsh;
+        last;
+      };
+      case: $key[1] == 5 and do {    # PgUp
+        $self->ln( $self->ln - $self->by - $self->ay - 2 );
+        $self->rfsh;
+        last;
+      };
+      case: $key[1] == 6 and do {    # PgDown
+        $self->ln( $self->ln + $self->by - $self->ay - 2 );
+        $self->rfsh;
+        last;
+      };
+      case: $key[1] == 7 and do {    # UpArrow
+        $self->ln( $self->ln - 1 );
+        $self->rfsh;
+        last;
+      };
+      case: $key[1] == 8 and do {    # DownArrow
+        $self->ln( $self->ln + 1 );
+        $self->rfsh;
+        last;
+      };
+    } #/ switch:
   } #/ while ( @key = PV::getkey...)
 } #/ sub activate
 
@@ -1574,75 +1782,101 @@ package PV::Editbox;
 use strict;
 use warnings;
 use Curses;
+use Class::Struct
+  view    => 'Curses::Window',
+  ax      => '$',
+  ay      => '$',
+  bx      => '$',
+  by      => '$',
+  margin  => '$',
+  text    => '$',
+  cp      => '$', # Cursor Position
+  ln      => '$', # Line Number
+  lines   => '@',
+  visible => '@',
+  ins     => '$', # Insert
+  ;
 
 # More or less a complete editor
-#   PV::Editbox->new(x1,y1,x2,y2,m,text,index,top);
-sub new {
-  my $type   = shift;
-  my @params = ( stdscr, @_, [], [], 0 );
-  my $self   = \@params;
-  $$self[6] =~ s/[\r\0]//g;                 # Strip nulls & DOShit.
-  $$self[6] =~ s/\t/        /g;             # TABs = 8 spaces.
-  $$self[6] .= "\n";
-  bless $self;
+# $obj = PV::Editbox->new($x1, $y1, $x2, $y2, $margin, $text, $index, $start);
+around: {    # $obj ($class, $x1, $y1, $x2, $y2, $margin, $text, $index, $start)
+  no warnings 'redefine';
+  my $orig = \&new; *new = sub {
+  my $class   = shift;
+  my ( $x1, $y1, $x2, $y2, $margin, $text, $index, $start ) = @_;
+  $text =~ s/[\r\0]//g;        # Strip nulls & DOShit.
+  $text =~ s/\t/        /g;    # TABs = 8 spaces.
+  $text .= "\n";
+  my $self = $class->$orig(
+    view   => stdscr,
+    ax     => $x1,
+    ay     => $y1,
+    bx     => $x2,
+    by     => $y2,
+    margin => $margin,
+    text   => $text,
+    cp     => $index,
+    ln     => $start,
+    ins    => 0,
+  );
   $self->justify( 1 );
   return $self;
-} #/ sub new
+}} #/ sub new
 
-sub place {
+sub place {    # void ($self)
   my $self = shift;
-  my ( $x1, $y1, $x2, $y2, $margin, $text, $index, $start ) = @$self[ 1 .. 8 ];
-  my $lines = $y2 - $y1 - 2;
-  my $i     = 0;
-  $y1++;
-  PV::mybox( @$self[ 1 .. 4 ], 0, 1, $$self[0] );
+  PV::mybox( $self->ax, $self->ay, $self->bx, $self->by, 0, 1, $self->view );
   $self->rfsh( 1 );
+  return;
 }
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
   $self->place;
-  refresh( $$self[0] );
+  refresh( $self->view );
+  return;
 }
 
-sub statusbar {
+sub statusbar {    # void ($self)
+  return;
 }
 
-sub rfsh {
+sub rfsh {    # void ($self, $display)
   my $self    = shift;
   my $display = shift;
-  my ( $x1, $y1, $x2, $y2, $margin, $text, $index, $start ) = @$self[ 1 .. 8 ];
-  my @visible = @{ $$self[10] };
-  my $lines   = $y2 - $y1 - 2;
-  my $i       = 0;
-  my $l;
-  $y1++;
-  attron( $$self[0], COLOR_PAIR( 3 ) );
+  my $start   = $self->ln;
+  my @visible = @{ $self->visible };
+  my $dy      = $self->by - $self->ay;
+  attron( $self->view, COLOR_PAIR( 3 ) );
 
-  foreach ( @{ $$self[9] }[ $start .. $start + $lines ] ) {
-    if ( defined $_ && defined $visible[$i] ) {
-      unless ( $visible[$i] eq $_ ) {
-        $$self[10][$i] = $_;
-        move( $$self[0], $y1 + $i, $x1 + 2 );
-        $l = $_;
-        chop( $l );
-        addstr( $$self[0], $l );
-        addstr( $$self[0], " " x ( length( $visible[$i] ) - length( $l ) ) );
-      }
-    } #/ if ( defined $_ && defined...)
+  my $i = 0;
+  foreach ( @{ $self->lines }[ $start .. $start + $dy - 2 ] ) {
+    $_           = '' unless defined;                 # $_ //= '';
+    $visible[$i] = '' unless defined $visible[$i];    # $visible[$i] //= '';
+    if ( $visible[$i] ne $_ ) {
+      my $l = $_;
+      $self->visible( $i, $l );
+      move( $self->view, $self->ay + 1 + $i, $self->ax + 2 );
+      chop( $l );
+      addstr( $self->view, $l );
+      my $padlen = length( $visible[$i] ) - length( $l );
+      addstr( $self->view, " " x $padlen ) if $padlen > 0;
+    }
     $i++;
-  } #/ foreach ( @{ $$self[9] }[ $start...])
-  $self->statusbar;
-  ( $display ) || ( refresh( $$self[0] ) );
+  } #/ foreach ( @{ $self->lines }[ $start...])
+  $self->statusbar();
+  refresh( $self->view ) unless $display;
+  return;
 } #/ sub rfsh
 
-sub process_key {
+sub process_key {    # @exitcode ($self, @key)
+  return;
 }
 
-sub justify {
+sub justify {    # void ($self, $mode)
   my $self = shift;
   my $mode = shift;
-  my ( $x1, $y1, $x2, $y2, $margin, $text, $index ) = @$self[ 1 .. 7 ];
+  my ( $margin, $text, $index ) = ( $self->margin, $self->text, $self->cp );
   my ( $i, $j ) = ( 0, 0 );
   my $line;
   my @text;
@@ -1662,9 +1896,9 @@ sub justify {
     $ta = $ta . "\0";
     $tb = "\0" . $tb;
     $ta =~ s/(.*)\n\s.*/$1/s;
-    ( $ta =~ /\0/ ) && ( $ta = "" );
+    $ta = "" if $ta =~ /\0/;
     $tb =~ s/.*?\n\s//s;
-    ( $tb =~ /\0/ ) && ( $tb = "" );
+    $tb = "" if $tb =~ /\0/;
     $text =
       substr( $text, length( $ta ), $mode - ( length( $ta ) + length( $tb ) ) );
     $mode = 0;
@@ -1684,13 +1918,11 @@ sub justify {
         $line = substr( $line, length( $text[$j] ) );
         $line =~ s/^\s*//;
         $text[$j] =~ s/\s*$/\n/;
-        if ( ( $j == $#text ) && ( $line ) ) {
+        if ( $line && $j == $#text ) {
           $text[ $j + 1 ] = $line;
           $textqq[$i] = $text[$j];
         }
-        elsif ( ( $line )
-          && ( $text[ $j + 1 ] =~ /^[\s\0]/ ) )
-        {
+        elsif ( $line && $text[ $j + 1 ] =~ /^[\s\0]/ ) {
           $textqq[$i] = $text[$j];
           $text[$j]   = $line;
           $j--;
@@ -1702,21 +1934,19 @@ sub justify {
           $text[ $j + 1 ] = $line . $text[ $j + 1 ];
         }
       } #/ if ( length( $text[$j]...))
-      elsif (
-        ( !$mode )
-        && ( $j < $#text )
-        && (
-          length( $text[$j] ) + length( ( split( " ", $text[ $j + 1 ] ) )[0] ) < $margin )
-        && ( $text[ $j + 1 ] =~ /^[^\s\0]/ )
-        )
+      elsif ( !$mode
+        && $j < $#text
+        && length( $text[$j] ) + length( ( split( " ", $text[ $j + 1 ] ) )[0] ) <
+        $margin
+        && $text[ $j + 1 ] =~ /^[^\s\0]/ )
       {
         chop( $text[$j] );
-        ( $text[$j] =~ /\s$/ ) || ( $text[$j] .= " " );
+        $text[$j] .= " " if $text[$j] !~ /\s$/;
         $text[$j] .= $text[ $j + 1 ];
         $textqq[$i] = $text[$j];
         $text[ $j + 1 ] = $text[$j];
         $i--;
-      } #/ elsif ( ( !$mode ) && ( $j...))
+      } #/ elsif ( !$mode && $j < $#text...)
       else {
         $textqq[$i] = $text[$j];
       }
@@ -1727,152 +1957,161 @@ sub justify {
   $text  = $ta . $text . $tb;
   $index = length( ( split( "\0", $text ) )[0] );
   substr( $text, $index, 1 ) = "";
-  $$self[7] = $index;
-  $$self[6] = $text;
+  $self->cp( $index );
+  $self->text( $text );
   $text =~ s/\n/\n\t/g;
-  @{ $$self[9] } = split( "\t", $text );
+  $self->lines( [ split( "\t", $text ) ] );
+  return;
 } #/ sub justify
 
-sub cursor {
+sub cursor {    # $col, $line, $len ($self)
   my $self = shift;
-  my ( $x1, $y1, $x2, $y2, $margin, $text, $index, $start ) = @$self[ 1 .. 8 ];
-  my $textthis = substr( $text, 0, $index + 1 );
+  my ( $x1, $y1, $y2, $start ) = ( $self->ax, $self->ay, $self->bx, $self->ln );
+  my $textthis = substr( $self->text, 0, $self->cp + 1 );
   my $col      = 0;
   my $line     = ( $textthis =~ tr/\n// );
   if ( $textthis =~ /\n$/ ) {
-    ( $line ) && ( $line-- );
+    $line-- if $line;
     $col++;
   }
-  my $len  = ( length( $$self[9][$line] ) - 1 );
+  my $len  = length( $self->lines->[$line] ) - 1;
   my @cols = split( "\n", $textthis );
-  $col += length( $cols[$line] ) if $line < $#cols;
+  $col += length( $cols[$line] ) || 0;
   if ( $line < $start ) {
     $start = $line;
   }
   elsif ( $line >= $start + $y2 - $y1 - 1 ) {
-    ( ( $start = $line - $y2 + $y1 + 2 ) < 0 ) && ( $start = 0 );
+    $start = $line - $y2 + $y1 + 2;
+    $start = 0 if $start < 0;
   }
-  ( $$self[8] != $start ) && do {
-    $$self[8] = $start;
+  if ( $self->ln != $start ) {
+    $self->ln( $start );
     $self->rfsh;
-  };
-  move( $$self[0], $y1 + $line - $start + 1, $col + $x1 + 1 );
+  }
+  move( $self->view, $y1 + $line - $start + 1, $col + $x1 + 1 );
   return ( $col, $line, $len );
 } #/ sub cursor
 
-sub linemove {
+sub linemove {    # void ($self, $dir, $count)
   my $self  = shift;
   my $dir   = shift;
   my $count = shift;
   my ( $col, $line, $len ) = $self->cursor;
   if ( $dir ) {
-    ( $line + $count > $#{ $$self[9] } ) && ( $count = $#{ $$self[9] } - $line );
+    if ( $line + $count > $#{ $self->lines } ) {
+      $count = $#{ $self->lines } - $line;
+    }
     if ( $count ) {
-      $$self[7] += ( $len - $col + 1 );
-      ( length( $$self[9][ $line + $count ] ) < $col )
-        && ( $col = length( $$self[9][ $line + $count ] ) );
-      $$self[7] += $col;
+      $self->cp( $self->cp + $len - $col + 1 );
+      ( length( $self->lines->[ $line + $count ] ) < $col )
+        && ( $col = length( $self->lines->[ $line + $count ] ) );
+      $self->cp( $self->cp + $col );
       $count--;
       while ( $count ) {
-        $$self[7] += length( $$self[9][ $count + $line ] );
+        $self->cp( $self->cp + length( $self->lines->[ $count + $line ] ) );
         $count--;
       }
     } #/ if ( $count )
   } #/ if ( $dir )
   elsif ( $line ) {
-    ( $line - $count < 0 ) && ( $count = $line );
-    $$self[7] -= ( $col + length( $$self[9][ $line - $count ] ) );
-    ( length( $$self[9][ $line - $count ] ) < $col )
-      && ( $col = length( $$self[9][ $line - $count ] ) );
-    $$self[7] += $col;
+    $count = $line if $line - $count < 0;
+    $self->cp(
+      $self->cp - $col + length( $self->lines->[ $line - $count ] ) );
+    if ( length( $self->lines->[ $line - $count ] ) < $col ) {
+      $col = length( $self->lines->[ $line - $count ] );
+    }
+    $self->cp( $self->cp + $col );
     $count--;
     while ( $count ) {
-      $$self[7] -= length( $$self[9][ $line - $count ] );
+      $self->cp( $self->cp - length( $self->lines->[ $line - $count ] ) );
       $count--;
     }
   } #/ elsif ( $line )
+  return;
 } #/ sub linemove
 
-sub e_bkspc {
+sub e_bkspc {    # void ($self)
   my $self = shift;
   my ( $col, $line, $len ) = $self->cursor;
-  if ( $$self[7] ) {
-    $$self[7]--;
-    if ( substr( $$self[6], $$self[7], 1 ) eq "\n" ) {
-      substr( $$self[6], $$self[7], 1 ) = "";
+  if ( $self->cp ) {
+    $self->cp( $self->cp - 1 );
+    if ( substr( $self->text, $self->cp, 1 ) eq "\n" ) {
+      substr( $$self[6], $self->cp, 1 ) = "";
       $self->justify;
     }
     else {
-      substr( $$self[6],        $$self[7], 1 ) = "";
+      substr( $$self[6],        $self->cp, 1 ) = "";
       substr( $$self[9][$line], $col - 2,  1 ) = "";
     }
     $self->rfsh;
-  } #/ if ( $$self[7] )
+  } #/ if ( $self->cp )
+  return;
 } #/ sub e_bkspc
 
-sub e_del {
+sub e_del {    # void ($self)
   my $self = shift;
   my ( $col, $line, $len ) = $self->cursor;
-  unless ( $$self[7] == length( $$self[6] ) - 1 ) {
-    if ( substr( $$self[6], $$self[7], 1 ) eq "\n" ) {
-      substr( $$self[6], $$self[7], 1 ) = "";
+  unless ( $self->cp == length( $self->text ) - 1 ) {
+    if ( substr( $self->text, $self->cp, 1 ) eq "\n" ) {
+      substr( $$self[6], $self->cp, 1 ) = "";
       $self->justify;
     }
     else {
-      substr( $$self[6],        $$self[7], 1 ) = "";
-      substr( $$self[9][$line], $col - 1,  1 ) = "";
+      substr( $$self[6],        $self->cp, 1 ) = "";
+      substr( $$self[9][$line], $col - 1,     1 ) = "";
     }
     $self->rfsh;
-  } #/ unless ( $$self[7] == length...)
+  } #/ unless ( $self->cp == length...)
 } #/ sub e_del
 
-sub e_ins {
+sub e_ins {    # void ($self, $keystroke)
   my $self      = shift;
   my $keystroke = shift;
+  $keystroke = "\n" if $keystroke =~ /\n|\r\n?/;
   my ( $col, $line, $len ) = $self->cursor;
-  if ( substr( $$self[6], $$self[7], 1 ) eq "\n" ) {
-    substr( $$self[6],        $$self[7], 0 ) = $keystroke;
+  if ( substr( $self->text, $self->cp, 1 ) eq "\n" ) {
+    substr( $$self[6],        $self->cp, 0 ) = $keystroke;
     substr( $$self[9][$line], $col - 1,  0 ) = $keystroke;
   }
   else {
-    substr( $$self[6],        $$self[7], $$self[11] ) = $keystroke;
-    substr( $$self[9][$line], $col - 1,  $$self[11] ) = $keystroke;
+    substr( $$self[6],        $self->cp, $self->ins ) = $keystroke;
+    substr( $$self[9][$line], $col - 1,  $self->ins ) = $keystroke;
   }
-  $$self[7]++;
-  if ( ( length( $$self[9][$line] ) >= $$self[5] )
+  $self->cp( $self->cp + 1 );
+  if ( ( length( $self->lines->[$line] ) >= $self->margin )
     || ( $keystroke eq "\n" ) )
   {
     $self->justify;
   }
   $self->rfsh;
+  return;
 } #/ sub e_ins
 
-sub stat {
+sub stat {    # $text_value ($self)
   my $self = shift;
-  return $$self[6];
+  return $self->ln;
 }
 
 # Makes editbox active
-sub activate {
+sub activate {    # $cmd ($self)
   my $self = shift;
-  my ( $y1, $y2, $margin ) = ( $$self[2], $$self[4], $$self[5] );
+  my $dy = $self->by - $self->ay;
   my @exitcode;
-  my @key;
   $self->rfsh;
   my ( $col, $line, $len ) = $self->cursor;
-  refresh( $$self[0] );
+  refresh( $self->view );
 
-  while ( @key = PV::getkey() ) {
+  while ( my @key = PV::getkey() ) {
 
-    if ( $key[1] == 18 ) {      # Help
+    if ( $key[1] == 18 ) {    # Help
       $self->rfsh;
       return 5;
     }
-    elsif ( $key[1] == 19 ) {   # Menu
+    elsif ( $key[1] == 19 ) {    # Menu
       $self->rfsh;
       return 6;
     }
-    else {                      # Process key hook for subclasses
+    else {                       # Process key hook for subclasses
       @exitcode = ( $self->process_key( @key ) );
       if ( $exitcode[0] == 1 ) {
         $self->rfsh;
@@ -1884,51 +2123,76 @@ sub activate {
         if ( $exitcode[0] == 3 ) {
           @key = @exitcode[ 1 .. 2 ];
         }
-
-        ( $key[1] == 11 ) && ( $self->e_bkspc() );
-        ( ( $key[1] == 200 ) && ( $key[0] eq "\t" ) ) && do { $self->rfsh; return 7; };
-        ( ( $key[1] == 200 ) && ( $key[0] =~ /\r\f/ ) ) && do { pv::redraw(); last; };
-        ( $key[1] == 200 ) && ( $self->e_ins( $key[0] ) );
-        ( ( $key[1] == 2 ) || ( $key[1] == 21 ) )
-          && ( $$self[11] = ( $$self[11] ? 0 : 1 ) );
-        ( ( $key[1] == 3 ) || ( ( $key[0] eq "\cD" ) && ( !$key[1] ) ) )
-          && ( $self->e_del() );
-
-        ( ( $key[1] == 1 ) || ( ( $key[0] eq "\cA" ) && ( !$key[1] ) ) ) && do {  # Home
-          $$self[7] -= ( ( $self->cursor )[0] - 1 );
-        };
-        ( ( $key[1] == 4 ) || ( ( $key[0] eq "\cE" ) && ( !$key[1] ) ) ) && do {  # End
-          $$self[7] += ( ( $self->cursor )[2] - ( ( $self->cursor )[0] - 1 ) );
-        };
-        ( ( $key[1] == 5 ) || ( $key[1] == 15 ) ) && do {                         # PgUp
-          $self->linemove( 0, $y2 - $y1 - 2 );
-        };
-        ( ( $key[1] == 6 ) || ( ( $key[0] eq "\cV" ) && ( !$key[1] ) ) ) && do {  # PgDown
-          $self->linemove( 1, $y2 - $y1 - 2 );
-        };
-        ( ( $key[1] == 7 ) || ( ( $key[0] eq "\cP" ) && ( !$key[1] ) ) ) && do {  # UpArrow
-          $self->linemove( 0, 1 );
-        };
-        ( ( $key[1] == 8 ) || ( ( $key[0] eq "\cN" ) && ( !$key[1] ) ) ) && do {  # DownArrow
-          $self->linemove( 1, 1 );
-        };
-        ( ( $key[1] == 9 ) || ( ( $key[0] eq "\cF" ) && ( !$key[1] ) ) ) && do {  # RightArrow
-          unless ( $$self[7] == length( $$self[6] ) - 1 ) {
-            $$self[7]++;
-          }
-        };
-        ( ( $key[1] == 10 ) || ( ( $key[0] eq "\cB" ) && ( !$key[1] ) ) ) && do { # LeftArrow
-          if ( $$self[7] ) {
-            $$self[7]--;
-          }
-        };
+        switch: {
+          case: ( $key[1] == 11 ) and do {
+            $self->e_bkspc();
+            last;
+          };
+          case: ( $key[1] == 200 ) && ( $key[0] eq "\t" ) and do {
+            $self->rfsh;
+            return 7;
+          };
+          case: ( $key[1] == 200 ) && ( $key[0] =~ /\r\f/ ) and do {
+            pv::redraw();
+            return 0;
+          };
+          case: ( $key[1] == 200 ) and do {
+            $self->e_ins( $key[0] );
+            last;
+          };
+          case: ( $key[1] == 2 ) || ( $key[1] == 21 ) and do {
+            $self->ins( $self->ins ? 0 : 1 );
+            last;
+          };
+          case: ( $key[1] == 3 ) || ( !$key[1] && $key[0] eq "\cD" ) and do {
+            $self->e_del();
+            last;
+          };
+          case: ( $key[1] == 1 ) || ( !$key[1] && $key[0] eq "\cA" ) and do {    # Home
+            $self->cp( $self->cp - ( $self->cursor )[0] - 1 );
+            last;
+          };
+          case: ( $key[1] == 4 ) || ( !$key[1] && $key[0] eq "\cE" ) and do {    # End
+            $self->cp( $self->cp 
+              + ( $self->cursor )[2] - ( ( $self->cursor )[0] - 1 ) );
+            last;
+          };
+          case: ( $key[1] == 5 ) || ( $key[1] == 15 ) and do {                   # PgUp
+            $self->linemove( 0, $dy - 2 );
+            last;
+          };
+          case: ( $key[1] == 6 ) || ( !$key[1] && $key[0] eq "\cV" ) and do {    # PgDown
+            $self->linemove( 1, $dy - 2 );
+            last;
+          };
+          case: ( $key[1] == 7 ) || ( !$key[1] && $key[0] eq "\cP" ) and do {    # UpArrow
+            $self->linemove( 0, 1 );
+            last;
+          };
+          case: ( $key[1] == 8 ) || ( !$key[1] && $key[0] eq "\cN" ) and do {    # DownArrow
+            $self->linemove( 1, 1 );
+            last;
+          };
+          case: ( $key[1] == 9 ) || ( !$key[1] && $key[0] eq "\cF" ) and do {    # RightArrow
+            unless ( $self->cp == length( $self->text ) - 1 ) {
+              $self->cp( $self->cp + 1 );
+            }
+            last;
+          };
+          case: ( $key[1] == 10 ) || ( !$key[1] && $key[0] eq "\cB" ) and do {    # LeftArrow
+            if ( $self->cp ) {
+              $self->cp( $self->cp - 1 );
+            }
+            last;
+          };
+        } #/ switch:
         $self->cursor;
-        $self->statusbar;
+        $self->statusbar();
         ( $col, $line, $len ) = $self->cursor;
-        refresh( $$self[0] );
+        refresh( $self->view );
       } #/ else [ if ( $exitcode[0] == 1)]
     } #/ else [ if ( $key[1] == 18 ) ]
-  } #/ while ( @key = PV::getkey...)
+  } #/ while ( my @key = PV::getkey...)
 } #/ sub activate
 
 #------------------
@@ -1937,52 +2201,80 @@ package PV::Dialog;
 use strict;
 use warnings;
 use Curses;
+use Class::Struct
+  view    => 'Curses::Window',
+  label   => '$',
+  ax      => '$',
+  ay      => '$',
+  bx      => '$',
+  by      => '$',
+  style   => '$',
+  bkcolor => '$',
+  ;
 
 # The dialog box object
-#   PV::Dialog->new("Label",x1,y1,x2,y2,style,color,
-#     Control1,1,2,3,4,5,6,7,8,
-#     Control2,1,2,3,4,5,6,7,8,...)
-sub new {
-  my $type   = shift;
-  my @params = ( 0, @_ );
-  my $self   = \@params;
-  $$self[0] =
-    newwin( $$self[5] - $$self[3] + 1, $$self[4] - $$self[2] + 1, $$self[3] - 1,
-    $$self[2] - 1 );
-  bless $self;
-}
+# $obj = PV::Dialog->new("Label", $x1, $y1, $x2, $y2, $style, $color,
+#     control1, 1, 2, 3, 4, 5, 6, 7, 8,
+#     control2, 1, 2, 3, 4, 5, 6, 7, 8, ...);
+around: {    # $obj ($class, $label, $x1, $y1, $x2, $y2, $style, $color, @controls)
+  no warnings 'redefine';
+  my $orig = \&new; *new = sub {
+  my $class = shift;
+  my ( $label, $x1, $y1, $x2, $y2, $style, $color, @controls ) = @_;
+  my $dx = $x2 - $x1;
+  my $dy = $y2 - $y1;
+  my $win = newwin( $dy + 1, $dx + 1, $y1 - 1, $x1 - 1 );
+  my $self = $class->$orig(
+    view    => $win,
+    label   => $label,
+    ax      => $x1,
+    ay      => $y1,
+    bx      => $x2,
+    by      => $y2,
+    style   => $style,
+    bkcolor => $color,
+  );
+  push @$self, @controls;
+  return $self;
+}} #/ sub new
 
-sub display {
+sub display {    # void ($self)
   my $self = shift;
-  PV::mybox( 0, 0, $$self[4] - $$self[2], $$self[5] - $$self[3], 1, 1,
-    $$self[0] );
+  my $width = $self->bx - $self->ax;
+  my $height = $self->by - $self->ay;
+  # PV::mybox( 0, 0, $width, $height, 1, 1, $self->view );
+  PV::mybox( 0, 0, $width, $height, $self->style, $self->bkcolor, $self->view );
   my $i = 8;
-  while ( $i + 7 < $#$self ) {
-    $$self[$i][0] = $$self[0];
-    ( $$self[$i] )->place;
+  while ( 7 + $i < $#$self ) {
+    $self->[$i]->view( $self->view );
+    $self->[$i]->place;
     $i += 9;
   }
-  refresh( $$self[0] );
+  refresh( $self->view );
+  return;
 } #/ sub display
 
-sub activate {
+sub activate {    # $ctrl, $cmd ($self)
   my $self = shift;
   $self->display;
   my $i    = 1;
   my @last = ();
   while ( $i ) {
-    @last = ( $i, ( $$self[ 8 + ( ( $i - 1 ) * 9 ) ]->activate ) );
-    $i    = $$self[ 8 + ( ( $i - 1 ) * 9 ) + $last[1] ];
+    my $ctrl = 8 + ( $i - 1 ) * 9;
+    my $cmd  = $self->[$ctrl]->activate;
+    @last = ( $i, $cmd );
+    $i    = $self->[ $ctrl + $cmd ];
   }
   $self->hide;
-  refresh( $$self[0] );
-  return ( @last );
+  refresh( $self->view );
+  return @last;
 } #/ sub activate
 
-sub hide {
+sub hide {    # void ($self)
   my $self = shift;
   touchwin( stdscr );
   refresh( stdscr );
+  return;
 }
 
 # Two commonly needed dialog box types
@@ -1992,14 +2284,14 @@ package PV::PVD;
 use strict;
 use warnings;
 
-sub message {
-  my ( $message, $width, $depth ) = @_;
-  ( $width < 11 ) && ( $width = 11 );
-  $depth += 4;
+sub message {    # void ($self, $message, $width, $height)
+  my ( $message, $width, $height ) = @_;
+  $width = 11 if $width < 11;
+  $height += 4;
   my $x1     = int( ( 80 - $width ) / 2 );
-  my $y1     = 4 + int( ( 19 - $depth ) / 2 );
+  my $y1     = 4 + int( ( 19 - $height ) / 2 );
   my $x2     = $x1 + $width;
-  my $y2     = $y1 + $depth;
+  my $y2     = $y1 + $height;
   my $static = PV::Static->new( $message, 2, 1, $x2 - $x1, $y2 - $y1 - 4 );
   my $ok     = PV::Cutebutton->new( " OK ", int( $width / 2 ) - 3, $y2 - $y1 - 2 );
   my $dialog = PV::Dialog->new(
@@ -2008,17 +2300,18 @@ sub message {
     $static, 0,   0,   0,   0,   0, 0, 0, 0
   );
   $dialog->activate;
+  return;
 } #/ sub message
 
-sub yesno {
-  my ( $message, $width, $depth ) = @_;
+sub yesno {    # $cmd ($self, $message, $width, $height)
+  my ( $message, $width, $height ) = @_;
   my @message = split( "\n", $message );
-  ( $width < 21 ) && ( $width = 21 );
-  $depth += 4;
+  $width = 21 if $width < 21;
+  $height += 4;
   my $x1     = int( ( 80 - $width ) / 2 );
-  my $y1     = 4 + int( ( 19 - $depth ) / 2 );
+  my $y1     = 4 + int( ( 19 - $height ) / 2 );
   my $x2     = $x1 + $width;
-  my $y2     = $y1 + $depth;
+  my $y2     = $y1 + $height;
   my $static = PV::Static->new( $message, 2, 1, $x2 - $x1, $y2 - $y1 - 4 );
   my $yes = PV::Cutebutton->new( " YES ", int( $width / 2 ) - 9, $y2 - $y1 - 2 );
   my $no  = PV::Cutebutton->new( " NO ",  int( $width / 2 ) + 2, $y2 - $y1 - 2 );
@@ -2028,8 +2321,8 @@ sub yesno {
     $no,     2,   3,   2,   1,   2, 2, 1, 0,
     $static, 0,   0,   0,   0,   0, 0, 0, 0
   );
-  my $stat = ( $dialog->activate )[0];
-  ( $stat == 2 ) && ( $stat = 0 );
+  my ( $stat ) = $dialog->activate;
+  $stat = 0 if $stat == 2;
   return $stat;
 } #/ sub yesno
 
@@ -2039,7 +2332,7 @@ __END__
 
 =head1 NAME
 
-PV - PerlVision: Text-mode User Interface Widgets.
+PerlVision - Text-mode User Interface Widgets.
 
 =head1 VERSION
 
@@ -2284,14 +2577,14 @@ one pulldown, then add pulldowns to it till you have enough. Don't add
 too many (i.e. that there's not enough space for their heads on the
 menubar) or things will definitely get broken.
 
-  my $foo = PV::Menubar->new("Head", $width, $depth, 
+  my $foo = PV::Menubar->new("Head", $width, $height, 
                              "label1", 0, "label2", 0...);
 
 Just like with the listboxes, each list element is followed by a
 0. This list becomes your first pulldown. Now to add more pulldowns,
 do:
 
-  $foo->add("Head", $width, $depth, "label1", 0, "label2", 0...);
+  $foo->add("Head", $width, $height, "label1", 0, "label2", 0...);
 
 That's the second pulldown, and so on. Because of this step by step
 method of building up the menubar, you need to display it once you're
@@ -2403,7 +2696,7 @@ for exiting:
 
 4 = Left Arrow          (Traditional shift-focus key)
 
-5 = M-h                 (For  help)
+5 = M-h                 (For help)
 
 6 = M-x                 (For menu)
 
@@ -2492,11 +2785,11 @@ buttons. They don't bother to check if the screen will hold the dialog
 box, or the dialog box will hold your text. Both use the following
 syntax:
 
-  $foo = PV::PVD::message->new("Text", $width, $depth);
+  $foo = PV::PVD::message->new("Text", $width, $height);
 
 PV::PVD::yesno returns 1 for yes and 0 for no.
 
-Width and depth are how big you want the text part of the box to be
+Width and height are how big you want the text part of the box to be
 (the buttons are separate).
 
 =head1 BUGS

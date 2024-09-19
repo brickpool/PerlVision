@@ -4,20 +4,23 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 my %WriteMakefileArgs = (
-    NAME             => 'PV',
+    NAME             => 'PerlVision',
     AUTHOR           => q{Ashish Gulhati <agul@cpan.org>},
     VERSION_FROM     => 'lib/PV.pm',
     ABSTRACT_FROM    => 'lib/PV.pm',
     LICENSE          => 'artistic',
     MIN_PERL_VERSION => '5.010',
     CONFIGURE_REQUIRES => {
-        'ExtUtils::MakeMaker' => '0',
+        'ExtUtils::MakeMaker' => 0,
     },
     TEST_REQUIRES => {
-        'Test::More' => '0',
+        'Test::More' => 0,
     },
     PREREQ_PM => {
-        'Curses'    => '0',
+        'Class::Struct' => 0,
+        'Curses'        => 0,
+        'strict'        => 0
+        'warnings'      => 0,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'PV-*' },
